@@ -33,6 +33,11 @@ async function route(path: string) {
   if (path === '/compte') {
     const { showAccount } = await import('./account-page');
     showAccount(root, me, logout);
+  } else if (path === '/explorer') {
+    const { ExplorerPage } = await import('./explorer-page');
+    const explorer = new ExplorerPage(root, me);
+    page = explorer;
+    void explorer.start();
   } else {
     const { App } = await import('./app');
     const app = new App(root, me);
