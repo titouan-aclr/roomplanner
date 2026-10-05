@@ -322,3 +322,26 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 }
 .params .field, .furn .field { min-width: 0; }
 .params .field input, .params .field select { width: 100%; min-width: 0; }
+
+/* ---------- Tiroir mobile : seule la liste défile ---------- */
+@media (max-width: 899px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100vh;
+    height: 100dvh; /* hauteur réelle de l'écran, barre d'adresse comprise */
+    overflow: hidden;
+  }
+  .sidebar > .explore-link, .sidebar > .divider, .sidebar > .sidebar-head { flex: none; }
+  .layout-list {
+    flex: 1 1 auto;
+    min-height: 0; /* sans cela, un enfant flex ne peut pas être plus petit que son contenu */
+    overflow-y: auto;
+    overscroll-behavior: contain; /* le défilement ne se transmet pas à la page derrière */
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    align-content: start;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
