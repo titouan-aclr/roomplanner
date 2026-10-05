@@ -5,6 +5,7 @@ import { logger } from 'hono/logger';
 import { roomList } from '../rooms';
 import { initDb } from './db';
 import { authRoutes, inviteRoutes } from './routes/auth';
+import { adminRoutes } from './routes/admin';
 import { layoutRoutes } from './routes/layouts';
 import { seed } from './seed';
 
@@ -16,6 +17,7 @@ const api = new Hono()
   .get('/rooms', (c) => c.json({ rooms: roomList }))
   .route('/auth', authRoutes)
   .route('/invites', inviteRoutes)
+  .route('/admin', adminRoutes)
   .route('/', layoutRoutes);
 app.route('/api', api);
 app.all('/api/*', (c) => c.json({ error: 'Route inconnue.' }, 404));

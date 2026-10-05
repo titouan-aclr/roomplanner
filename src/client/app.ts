@@ -521,7 +521,12 @@ export class App {
       </form>
       ${admin ? `<h2>Invitations</h2><p class="muted">Chaque lien permet de créer un compte, une seule fois, pendant 14 jours.</p>
         <div class="row"><button class="btn primary" type="button" id="newInvite">Créer un lien d'invitation</button></div>
-        <div class="invite-list" id="inviteList"></div>` : ''}`;
+        <div class="invite-list" id="inviteList"></div>
+        <h2>Importer l'ancienne version</h2>
+        <p class="muted">Dans l'ancienne page, clique sur « Exporter tous les onglets », puis colle le texte ici. Les onglets seront ajoutés à ${esc(this.room.data.name.toLowerCase())}, à ton nom.</p>
+        <textarea class="copy" id="legacyJson" placeholder='{"tabs": [...]}'></textarea>
+        <label class="check"><input type="checkbox" id="legacyReplace"> Remplacer les dispositions actuelles de la pièce</label>
+        <div class="row"><button class="btn" type="button" id="legacyImport">Importer</button></div>` : ''}`;
     $('#pwForm', card).addEventListener('submit', async (e) => {
       e.preventDefault();
       try {
@@ -535,6 +540,16 @@ export class App {
         try { await api.createInvite(); await this.loadInvites(); } catch (err) { toast((err as Error).message); }
       });
       void this.loadInvites();
+      $('#legacyImport', card).addEventListener('click', async () => {
+        let state: unknown;
+        try { state = JSON.parse($<HTMLTextAreaElement>('#legacyJson', card).value); } catch { toast('Le texte collé n’est pas un export valide.'); return; }
+        try {
+          const { imported } = await api.importLegacy(this.room.data.id, state, $<HTMLInputElement>('#legacyReplace', card).checked);
+          toast(`${imported} dispositions importées.`);
+          $<HTMLTextAreaElement>('#legacyJson', card).value = '';
+          await this.reload(false);
+        } catch (err) { toast((err as Error).message); }
+      });
     }
   }
 

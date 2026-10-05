@@ -52,4 +52,5 @@ export const api = {
   invites: () => call<{ invites: Invite[] }>('GET', '/invites'),
   createInvite: () => call<{ code: string; expiresAt: number }>('POST', '/invites'),
   deleteInvite: (code: string) => call<{ ok: true }>('DELETE', `/invites/${code}`),
+  importLegacy: (roomId: string, state: unknown, replace: boolean) => call<{ imported: number }>('POST', `/admin/import-legacy/${roomId}`, { state, replace }),
 };

@@ -9,8 +9,7 @@
     "build": "vite build && tsup",
     "start": "node dist/server/index.js",
     "typecheck": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
-    "import:legacy": "tsx scripts/import-legacy.ts"
+    "db:generate": "drizzle-kit generate"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

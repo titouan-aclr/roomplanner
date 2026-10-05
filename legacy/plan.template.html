@@ -162,6 +162,7 @@ textarea.copy { width: 100%; min-height: 120px; font-family: var(--f-mono); font
       <button class="btn" id="rename" type="button">Renommer l'onglet</button>
       <button class="btn" id="dup" type="button">Dupliquer l'onglet</button>
       <button class="btn" id="reset" type="button">Réinitialiser</button>
+      <button class="btn" id="exportAll" type="button">Exporter tous les onglets</button>
       <button class="btn primary" id="copy" type="button">Copier pour Claude</button>
     </div>
   </header>
@@ -780,6 +781,16 @@ textarea.copy { width: 100%; min-height: 120px; font-family: var(--f-mono); font
     state.active = id; commit(true);
   });
   $('reset').addEventListener('click', () => { const t = tab(); t.items = clone(t.initial); selected = null; commit(true); });
+
+  // ---------- Export complet (pour l'import dans roomplanner) ----------
+  $('exportAll').addEventListener('click', () => {
+    const text = JSON.stringify({ tabs: state.tabs.map((t) => ({ name: t.name, pros: t.pros, cons: t.cons, items: t.items, initial: t.initial })) });
+    $('copyCard').hidden = false; $('copyText').value = text;
+    const fallback = () => { $('copyMsg').textContent = 'Copie automatique bloquée : sélectionne le texte ci-dessous et copie-le.'; $('copyText').select(); };
+    try {
+      navigator.clipboard.writeText(text).then(() => { $('copyMsg').textContent = `Export de ${state.tabs.length} onglets copié : colle-le dans roomplanner (Compte → Importer l'ancienne version).`; }, fallback);
+    } catch (e) { fallback(); }
+  });
 
   // ---------- Copier pour Claude ----------
   $('copy').addEventListener('click', () => {
