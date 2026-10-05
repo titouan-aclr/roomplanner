@@ -23,7 +23,7 @@ export function showAccount(root: HTMLElement, me: Me, onLogout: () => void) {
             <button class="btn primary" type="submit">Changer le mot de passe</button>
           </form>
         </section>
-        <section class="sheet card">
+        ${admin ? `        <section class="sheet card">
           <h2>Exporter</h2>
           <p class="muted">Télécharge toutes les dispositions d'une pièce (auteurs, meubles, état d'origine, votes) dans un fichier JSON : pour garder une sauvegarde ou les transférer vers une autre installation.</p>
           <div class="form">
@@ -31,7 +31,6 @@ export function showAccount(root: HTMLElement, me: Me, onLogout: () => void) {
             <a class="btn primary" id="exportLink" href="#" download>Télécharger l'export</a>
           </div>
         </section>
-        ${admin ? `
         <section class="sheet card">
           <h2>Invitations</h2>
           <p class="muted">Chaque lien permet de créer un compte, une seule fois, pendant 14 jours. Envoie-le à la personne invitée.</p>
@@ -66,12 +65,11 @@ export function showAccount(root: HTMLElement, me: Me, onLogout: () => void) {
   });
   $('#logout', root).addEventListener('click', async () => { await api.logout(); onLogout(); });
 
+  if (!admin) return;
   const exportRoom = $<HTMLSelectElement>('#exportRoom', root), exportLink = $<HTMLAnchorElement>('#exportLink', root);
   const syncExport = () => { exportLink.href = api.exportUrl(exportRoom.value); };
   exportRoom.addEventListener('change', syncExport);
   syncExport();
-
-  if (!admin) return;
   const link = (code: string) => `${location.origin}/?invite=${code}`;
   const loadInvites = async () => {
     const { invites } = await api.invites();

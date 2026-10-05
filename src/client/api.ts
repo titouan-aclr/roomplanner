@@ -53,5 +53,5 @@ export const api = {
   createInvite: () => call<{ code: string; expiresAt: number }>('POST', '/invites'),
   deleteInvite: (code: string) => call<{ ok: true }>('DELETE', `/invites/${code}`),
   importLayouts: (roomId: string, data: unknown, replace: boolean) => call<{ imported: number }>('POST', `/admin/import/${roomId}`, { data, replace }),
-  exportUrl: (roomId: string) => `/api/rooms/${roomId}/export`,
+  exportUrl: (roomId: string) => `/api/admin/export/${roomId}`,
 };

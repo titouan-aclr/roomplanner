@@ -1,10 +1,10 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { rooms } from '../../rooms';
 import type { Face, Layout, PlacedItem } from '../../shared/types';
 import { type AuthEnv, requireAdmin, requireUser } from '../auth';
 import { db, schema } from '../db';
-import { EXPORT_FORMAT, type ExportedLayout } from '../exchange';
+import { EXPORT_FORMAT, type ExportedLayout, type ExportFile } from '../exchange';
 import { parseItems } from './layouts';
 
 interface LegacyItem { label: string; face: Face; x: number; y: number; w: number; d: number; h?: number; hidden?: boolean; chimney?: boolean; clear?: number; min?: number }
@@ -51,6 +51,28 @@ function readImport(roomId: string, data: unknown): Incoming[] | string {
 
 export const adminRoutes = new Hono<AuthEnv>()
   .use(requireUser, requireAdmin)
+  /** Export de toutes les dispositions d'une pièce (fichier JSON à télécharger). */
+  .get('/export/:roomId', async (c) => {
+    const roomId = c.req.param('roomId');
+    if (!rooms[roomId]) return c.json({ error: 'Pièce inconnue.' }, 404);
+    const rows = await db.select({
+      l: schema.layouts, owner: schema.users.pseudo,
+      up: sql<number>`coalesce((select count(*) from votes v where v.layout_id = ${schema.layouts.id} and v.value = 1), 0)`,
+      down: sql<number>`coalesce((select count(*) from votes v where v.layout_id = ${schema.layouts.id} and v.value = -1), 0)`,
+    }).from(schema.layouts).innerJoin(schema.users, eq(schema.layouts.ownerId, schema.users.id))
+      .where(and(eq(schema.layouts.roomId, roomId), isNull(schema.layouts.deletedAt)))
+      .orderBy(asc(schema.layouts.position), asc(schema.layouts.id));
+    const file: ExportFile = {
+      format: EXPORT_FORMAT, roomId, exportedAt: new Date().toISOString(),
+      layouts: rows.map((r) => ({
+        name: r.l.name, owner: r.owner, items: JSON.parse(r.l.items), initial: JSON.parse(r.l.initial),
+        notes: r.l.notes ? JSON.parse(r.l.notes) : null, votes: { up: r.up, down: r.down },
+      })),
+    };
+    const date = file.exportedAt.slice(0, 10);
+    c.header('Content-Disposition', `attachment; filename="roomplanner-${roomId}-${date}.json"`);
+    return c.json(file);
+  })
   /**
    * Import d'un export roomplanner (les dispositions gardent leur auteur s'il existe ici, sinon elles sont
    * attribuées à l'administrateur) ou d'un export de l'ancienne page (attribuées à l'administrateur).

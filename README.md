@@ -85,7 +85,7 @@ docker compose -f docker-compose.prod.yml -f docker-compose.local.yml up -d --bu
 
 ## Export et import
 
-- **Exporter** (tous les utilisateurs) : page **Compte** → **Exporter**, choisir la pièce et télécharger le
+- **Exporter** (administrateur) : page **Compte** → **Exporter**, choisir la pièce et télécharger le
   fichier JSON (format `roomplanner-layouts-v1` : nom, auteur, meubles, état d'origine, votes).
 - **Importer** (administrateur) : page **Compte** → **Importer**, choisir un fichier ou coller le texte.
   - Export roomplanner : chaque disposition garde son auteur s'il a un compte ici, sinon elle est mise
