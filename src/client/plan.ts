@@ -209,6 +209,10 @@ export class PlanView {
 
   private bindPointer() {
     const { svg, host } = this;
+    // Sur écran tactile : glisser sur le plan fait défiler la page, sauf si l'on attrape un meuble modifiable.
+    svg.addEventListener('touchstart', (e) => {
+      if (host.editable() && (e.target as Element).closest('[data-id]')) e.preventDefault();
+    }, { passive: false });
     svg.addEventListener('pointerdown', (e) => {
       const g = (e.target as Element).closest('[data-id]');
       if (!g) { host.select(null); return; }
