@@ -42,7 +42,8 @@ export async function endSession(c: Context) {
   deleteCookie(c, COOKIE, { path: '/' });
 }
 
-async function currentUser(c: Context): Promise<User | null> {
+/** Utilisateur de la session en cours, ou null. */
+export async function currentUser(c: Context): Promise<User | null> {
   const token = getCookie(c, COOKIE);
   if (!token) return null;
   const row = await db.select().from(schema.sessions).innerJoin(schema.users, eq(schema.sessions.userId, schema.users.id))
