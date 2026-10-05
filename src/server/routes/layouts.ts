@@ -5,12 +5,13 @@ import type { Layout, PlacedItem } from '../../shared/types';
 import { type AuthEnv, requireUser } from '../auth';
 import { db, schema } from '../db';
 import type { LayoutRow, User } from '../db/schema';
+import { EXPORT_FORMAT, type ExportFile } from '../exchange';
 
 const FACES = new Set(['S', 'N', 'E', 'W']);
 const MAX_ITEMS = 40;
 
 /** Vérifie la forme des meubles envoyés par le navigateur et ne garde que les champs connus. */
-function parseItems(raw: unknown): Layout | null {
+export function parseItems(raw: unknown): Layout | null {
   if (!Array.isArray(raw) || raw.length > MAX_ITEMS) return null;
   const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) < 5000;
   const out: PlacedItem[] = [];
@@ -67,6 +68,28 @@ export const layoutRoutes = new Hono<AuthEnv>()
       .where(and(eq(schema.layouts.roomId, roomId), isNull(schema.layouts.deletedAt)))
       .orderBy(asc(schema.layouts.position), asc(schema.layouts.id));
     return c.json({ layouts: rows.map((r) => toDto(r.l, { id: r.l.ownerId, pseudo: r.ownerPseudo }, r.up, r.down, r.mine)) });
+  })
+  // Export de toutes les dispositions d'une pièce (fichier JSON à télécharger).
+  .get('/rooms/:roomId/export', async (c) => {
+    const roomId = c.req.param('roomId');
+    if (!rooms[roomId]) return c.json({ error: 'Pièce inconnue.' }, 404);
+    const rows = await db.select({
+      l: schema.layouts, owner: schema.users.pseudo,
+      up: sql<number>`coalesce((select count(*) from votes v where v.layout_id = ${schema.layouts.id} and v.value = 1), 0)`,
+      down: sql<number>`coalesce((select count(*) from votes v where v.layout_id = ${schema.layouts.id} and v.value = -1), 0)`,
+    }).from(schema.layouts).innerJoin(schema.users, eq(schema.layouts.ownerId, schema.users.id))
+      .where(and(eq(schema.layouts.roomId, roomId), isNull(schema.layouts.deletedAt)))
+      .orderBy(asc(schema.layouts.position), asc(schema.layouts.id));
+    const file: ExportFile = {
+      format: EXPORT_FORMAT, roomId, exportedAt: new Date().toISOString(),
+      layouts: rows.map((r) => ({
+        name: r.l.name, owner: r.owner, items: JSON.parse(r.l.items), initial: JSON.parse(r.l.initial),
+        notes: r.l.notes ? JSON.parse(r.l.notes) : null, votes: { up: r.up, down: r.down },
+      })),
+    };
+    const date = file.exportedAt.slice(0, 10);
+    c.header('Content-Disposition', `attachment; filename="roomplanner-${roomId}-${date}.json"`);
+    return c.json(file);
   })
   // Nouvelle disposition (vide, depuis le solveur ou copie d'une autre).
   .post('/rooms/:roomId/layouts', async (c) => {
