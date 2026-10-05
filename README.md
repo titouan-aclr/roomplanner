@@ -83,8 +83,14 @@ En local avec Docker (port 3000 exposé, identifiants dans `.env`) :
 docker compose -f docker-compose.prod.yml -f docker-compose.local.yml up -d --build
 ```
 
-## Reprendre les dispositions de l'ancienne version
+## Export et import
 
-1. Dans l'ancienne page, cliquer sur **Exporter tous les onglets** (le texte est copié).
-2. Dans roomplanner, connecté en administrateur : carte **Compte** → **Importer l'ancienne version**,
-   coller le texte puis **Importer**. Cocher « Remplacer » pour retirer d'abord les propositions de départ.
+- **Exporter** (tous les utilisateurs) : page **Compte** → **Exporter**, choisir la pièce et télécharger le
+  fichier JSON (format `roomplanner-layouts-v1` : nom, auteur, meubles, état d'origine, votes).
+- **Importer** (administrateur) : page **Compte** → **Importer**, choisir un fichier ou coller le texte.
+  - Export roomplanner : chaque disposition garde son auteur s'il a un compte ici, sinon elle est mise
+    au nom de l'administrateur. Les votes ne sont pas importés.
+  - Ancienne page : cliquer sur **Exporter tous les onglets** dans l'ancienne page puis coller le texte.
+  - « Remplacer » retire d'abord (de façon réversible en base) les dispositions actuelles de la pièce.
+
+Pour une sauvegarde complète (comptes et votes compris), copier le fichier `/data/roomplanner.db`.

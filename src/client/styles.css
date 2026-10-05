@@ -293,3 +293,5 @@ body { padding: 0; }
   .lbl { font-size: 12px; }
   .lbld { font-size: 9px; }
 }
+
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }

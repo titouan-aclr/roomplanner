@@ -23,6 +23,14 @@ export function showAccount(root: HTMLElement, me: Me, onLogout: () => void) {
             <button class="btn primary" type="submit">Changer le mot de passe</button>
           </form>
         </section>
+        <section class="sheet card">
+          <h2>Exporter</h2>
+          <p class="muted">Télécharge toutes les dispositions d'une pièce (auteurs, meubles, état d'origine, votes) dans un fichier JSON : pour garder une sauvegarde ou les transférer vers une autre installation.</p>
+          <div class="form">
+            <label class="field">Pièce<select id="exportRoom">${roomList.map((r) => `<option value="${r.id}">${esc(r.name)}</option>`).join('')}</select></label>
+            <a class="btn primary" id="exportLink" href="#" download>Télécharger l'export</a>
+          </div>
+        </section>
         ${admin ? `
         <section class="sheet card">
           <h2>Invitations</h2>
@@ -31,12 +39,13 @@ export function showAccount(root: HTMLElement, me: Me, onLogout: () => void) {
           <div class="invite-list" id="inviteList"><p class="muted">Chargement…</p></div>
         </section>
         <section class="sheet card">
-          <h2>Importer l'ancienne version</h2>
-          <p class="muted">Dans l'ancienne page, clique sur « Exporter tous les onglets », puis colle le texte ici. Les dispositions seront ajoutées à ton nom.</p>
+          <h2>Importer</h2>
+          <p class="muted">Accepte un fichier exporté depuis roomplanner (les dispositions gardent leur auteur s'il a un compte ici) ou le texte copié avec « Exporter tous les onglets » dans l'ancienne page (les dispositions sont mises à ton nom).</p>
           <form id="importForm" class="form">
             <label class="field">Pièce<select id="importRoom">${roomList.map((r) => `<option value="${r.id}">${esc(r.name)}</option>`).join('')}</select></label>
-            <label class="field">Export<textarea class="copy" id="legacyJson" placeholder='{"tabs": [...]}' required></textarea></label>
-            <label class="check"><input type="checkbox" id="legacyReplace"> Remplacer les dispositions actuelles de la pièce</label>
+            <label class="field">Fichier<input id="importFile" type="file" accept="application/json,.json"></label>
+            <label class="field">Ou texte collé<textarea class="copy" id="importJson" placeholder='{"format": "roomplanner-layouts-v1", …}'></textarea></label>
+            <label class="check"><input type="checkbox" id="importReplace"> Remplacer les dispositions actuelles de la pièce</label>
             <button class="btn" type="submit">Importer</button>
           </form>
         </section>` : ''}
@@ -56,6 +65,11 @@ export function showAccount(root: HTMLElement, me: Me, onLogout: () => void) {
     } catch (err) { toast((err as Error).message); }
   });
   $('#logout', root).addEventListener('click', async () => { await api.logout(); onLogout(); });
+
+  const exportRoom = $<HTMLSelectElement>('#exportRoom', root), exportLink = $<HTMLAnchorElement>('#exportLink', root);
+  const syncExport = () => { exportLink.href = api.exportUrl(exportRoom.value); };
+  exportRoom.addEventListener('change', syncExport);
+  syncExport();
 
   if (!admin) return;
   const link = (code: string) => `${location.origin}/?invite=${code}`;
@@ -78,13 +92,17 @@ export function showAccount(root: HTMLElement, me: Me, onLogout: () => void) {
   });
   void loadInvites();
 
+  $<HTMLInputElement>('#importFile', root).addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) $<HTMLTextAreaElement>('#importJson', root).value = await file.text();
+  });
   $('#importForm', root).addEventListener('submit', async (e) => {
     e.preventDefault();
-    let state: unknown;
-    try { state = JSON.parse($<HTMLTextAreaElement>('#legacyJson', root).value); } catch { toast('Le texte collé n’est pas un export valide.'); return; }
+    let data: unknown;
+    try { data = JSON.parse($<HTMLTextAreaElement>('#importJson', root).value); } catch { toast('Choisis un fichier ou colle un export valide.'); return; }
     const roomId = $<HTMLSelectElement>('#importRoom', root).value;
     try {
-      const { imported } = await api.importLegacy(roomId, state, $<HTMLInputElement>('#legacyReplace', root).checked);
+      const { imported } = await api.importLayouts(roomId, data, $<HTMLInputElement>('#importReplace', root).checked);
       toast(`${imported} dispositions importées.`);
       navigate('/');
     } catch (err) { toast((err as Error).message); }
