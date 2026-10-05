@@ -1,34 +1,44 @@
+// Point d'entrée public : il ne contient que l'écran de connexion. Le reste de l'application (pièces,
+// plans, propositions) est chargé dynamiquement après connexion, et le serveur ne sert ces fichiers
+// qu'aux personnes connectées.
 import './styles.css';
-import { showAccount } from './account-page';
 import { api, type Me } from './api';
-import { App } from './app';
 import { showAuth } from './auth-view';
 import { startRouter } from './router';
 
+interface Page { stop(): void }
+
 const root = document.getElementById('app')!;
 let me: Me | null = null;
-let app: App | null = null;
+let page: Page | null = null;
 
 function logout() {
   me = null;
-  app?.stop();
-  app = null;
+  page?.stop();
+  page = null;
   history.replaceState(null, '', '/');
   showAuth(root, login);
 }
 
 function login(user: Me) {
   me = user;
-  startRouter(route);
+  startRouter((path) => void route(path));
 }
 
-function route(path: string) {
+async function route(path: string) {
   if (!me) return;
-  app?.stop();
-  app = null;
+  page?.stop();
+  page = null;
   window.scrollTo(0, 0);
-  if (path === '/compte') showAccount(root, me, logout);
-  else { app = new App(root, me); void app.start(); }
+  if (path === '/compte') {
+    const { showAccount } = await import('./account-page');
+    showAccount(root, me, logout);
+  } else {
+    const { App } = await import('./app');
+    const app = new App(root, me);
+    page = app;
+    void app.start();
+  }
 }
 
 api.me().then(({ user }) => login(user), () => showAuth(root, login));
