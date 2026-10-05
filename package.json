@@ -1,0 +1,35 @@
+{
+  "name": "roomplanner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.8.1",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"tsx watch src/server/index.ts\" \"vite\"",
+    "build": "vite build && tsup",
+    "start": "node dist/server/index.js",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "import:legacy": "tsx scripts/import-legacy.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "concurrently": "^10.0.5",
+    "drizzle-kit": "^0.31.11",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.3",
+    "@libsql/client": "^0.18.0",
+    "drizzle-orm": "^0.45.3",
+    "hono": "^4.13.13"
+  }
+}
