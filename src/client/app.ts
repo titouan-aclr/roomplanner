@@ -243,6 +243,8 @@ export class App {
         </header>
         <div class="body">
           <nav class="sidebar" id="sidebar" aria-label="Dispositions">
+            <a class="btn explore-link" href="/explorer" data-nav>Explorer avec le solveur</a>
+            <hr class="divider">
             <div class="sidebar-head">
               <div class="seg" role="group" aria-label="Filtre">
                 <button type="button" data-filter="all">Toutes</button><button type="button" data-filter="mine">Les miennes</button>
@@ -250,7 +252,6 @@ export class App {
               <button class="btn primary" id="new" type="button">+ Nouvelle</button>
             </div>
             <div class="layout-list" id="layoutList" role="list"></div>
-            <a class="btn explore-link" href="/explorer" data-nav>Explorer avec le solveur</a>
           </nav>
           <div class="scrim" id="scrim" hidden></div>
           <main class="content" id="content">
