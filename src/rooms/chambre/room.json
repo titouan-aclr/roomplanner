@@ -4,8 +4,8 @@
   "home": "Marcadet",
   "height": 260,
   "unit": "cm",
-  "polygon": [[0, 0], [147, 0], [147, 26], [358, 26], [354, 323], [0, 327]],
-  "outline": [[-9, -9], [156, -9], [156, 17], [367, 17], [363, 332], [-9, 336]],
+  "polygon": [[0, 0], [147, 0], [147, 26], [355, 26], [354, 323], [0, 327]],
+  "outline": [[-9, -9], [156, -9], [156, 17], [364, 17], [363, 332], [-9, 336]],
   "viewBox": [-36, -34, 432, 452],
   "fixed": [
     {
@@ -13,13 +13,13 @@
       "label": "Cheminée",
       "labelDef": "la cheminée",
       "kind": "obstacle",
-      "rect": { "x": 161, "y": 26, "w": 100, "h": 26 },
+      "rect": { "x": 158, "y": 26, "w": 100, "h": 26 },
       "height": 100,
       "attachedTo": "top",
       "notchInfo": "Dessus de cheminée à 100 cm, soit 25 cm au-dessus du plan : bonne étagère, mais un écran posé dessus aurait son haut vers 135 cm, au-dessus des yeux (~120 cm assis).",
       "draw": [
-        { "kind": "rect", "class": "s-chim", "x": 161, "y": 26, "w": 100, "h": 26 },
-        { "kind": "text", "class": "s-note", "x": 211, "y": 42, "text": "cheminée · h 100", "anchor": "middle" }
+        { "kind": "rect", "class": "s-chim", "x": 158, "y": 26, "w": 100, "h": 26 },
+        { "kind": "text", "class": "s-note", "x": 208, "y": 42, "text": "cheminée · h 100", "anchor": "middle" }
       ]
     },
     {
@@ -27,12 +27,12 @@
       "label": "Radiateur",
       "labelDef": "le radiateur",
       "kind": "obstacle",
-      "rect": { "x": 344, "y": 242, "w": 12, "h": 50 },
-      "heatZone": { "x": 319, "y": 242, "w": 25, "h": 50 },
+      "rect": { "x": 342, "y": 242, "w": 12, "h": 50 },
+      "heatZone": { "x": 317, "y": 242, "w": 25, "h": 50 },
       "draw": [
-        { "kind": "rect", "class": "s-rad", "x": 344, "y": 242, "w": 12, "h": 50 },
-        { "kind": "fins", "x": 345, "y": 247, "w": 10, "h": 45, "step": 5 },
-        { "kind": "text", "class": "s-note", "x": 340, "y": 268, "text": "radiateur", "anchor": "end" }
+        { "kind": "rect", "class": "s-rad", "x": 342, "y": 242, "w": 12, "h": 50 },
+        { "kind": "fins", "x": 343, "y": 247, "w": 10, "h": 45, "step": 5 },
+        { "kind": "text", "class": "s-note", "x": 338, "y": 268, "text": "radiateur", "anchor": "end" }
       ]
     },
     {
@@ -65,14 +65,14 @@
       "id": "window",
       "kind": "window",
       "label": "Fenêtre",
-      "rect": { "x": 356, "y": 84, "w": 3, "h": 125 },
+      "rect": { "x": 353, "y": 84, "w": 3, "h": 125 },
       "draw": [
-        { "kind": "gap", "x": 354, "y": 84, "w": 12, "h": 125 },
-        { "kind": "line", "x1": 357, "y1": 84, "x2": 357, "y2": 209 },
-        { "kind": "line", "x1": 362, "y1": 84, "x2": 362, "y2": 209 },
-        { "kind": "path", "class": "s-swing", "d": "M357 146.5 A62.5 62.5 0 0 0 294.5 84 M357 146.5 A62.5 62.5 0 0 1 294.5 209 M357 84 H294.5 M357 209 H294.5" },
-        { "kind": "text", "class": "s-note", "x": 325, "y": 149, "text": "fenêtre 125", "anchor": "middle" },
-        { "kind": "text", "class": "s-note", "x": 325, "y": 158, "text": "allège 30 cm", "anchor": "middle" }
+        { "kind": "gap", "x": 351, "y": 84, "w": 12, "h": 125 },
+        { "kind": "line", "x1": 354, "y1": 84, "x2": 354, "y2": 209 },
+        { "kind": "line", "x1": 359, "y1": 84, "x2": 359, "y2": 209 },
+        { "kind": "path", "class": "s-swing", "d": "M354 146.5 A62.5 62.5 0 0 0 291.5 84 M354 146.5 A62.5 62.5 0 0 1 291.5 209 M354 84 H291.5 M354 209 H291.5" },
+        { "kind": "text", "class": "s-note", "x": 322, "y": 149, "text": "fenêtre 125", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 322, "y": 158, "text": "allège 30 cm", "anchor": "middle" }
       ]
     },
     {
@@ -94,7 +94,7 @@
       "id": "windowSwing",
       "kind": "keepFree",
       "label": "Ouverture fenêtre",
-      "rect": { "x": 294, "y": 84, "w": 64, "h": 125 },
+      "rect": { "x": 291, "y": 84, "w": 64, "h": 125 },
       "message": "{item} empêche d'ouvrir la fenêtre.",
       "frontWarning": "{what} est dans le débattement de la fenêtre : il faudra la pousser pour ouvrir."
     },
@@ -109,22 +109,18 @@
   ],
   "dimensions": [
     { "axis": "h", "from": 0, "to": 147, "at": -18, "label": "147" },
-    { "axis": "h", "from": 161, "to": 261, "at": 9, "label": "100" },
-    { "axis": "h", "from": 261, "to": 358, "at": 9, "label": "97" },
+    { "axis": "h", "from": 147, "to": 158, "at": 9, "label": "11" },
+    { "axis": "h", "from": 158, "to": 258, "at": 9, "label": "100" },
+    { "axis": "h", "from": 258, "to": 355, "at": 9, "label": "97" },
     { "axis": "v", "from": 0, "to": 327, "at": -20, "label": "327" },
     { "axis": "v", "from": 26, "to": 323, "at": 380, "label": "297" },
     { "axis": "h", "from": 0, "to": 262, "at": 348, "label": "354 (mur du bas)" },
     { "axis": "text", "x": 142, "y": 17, "label": "26", "anchor": "end" }
   ],
   "snap": {
-    "x": [0, 147, 161, 261],
+    "x": [0, 147, 158, 258],
     "y": [0, 26, 52],
-    "slantRight": {
-      "x0": 358,
-      "y0": 26,
-      "dx": -4,
-      "dy": 297
-    },
+    "slantRight": { "x0": 355, "y0": 26, "dx": -1, "dy": 297 },
     "slantBottom": {
       "y0": 327,
       "x0": 0,
