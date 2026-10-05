@@ -109,26 +109,47 @@ export class RoomGeo {
    * sur ses bords latéraux pour tolérer les murs légèrement de biais.
    */
   freeDepth(strip: (d: number) => Rect, max: number, blockers: Blocker[]): { depth: number; by: string | null } {
-    for (let d = 1; d <= max; d++) {
+    const blockedBy = (d: number): string | null => {
       const s0 = strip(d), next = strip(d + 1);
       const s = next.w === s0.w ? { ...s0, x: s0.x + 2, w: Math.max(1, s0.w - 4) } : { ...s0, y: s0.y + 2, h: Math.max(1, s0.h - 4) };
-      if (!this.inRoom(s)) return { depth: d - 1, by: 'le mur' };
-      for (const f of this.hard) if (overlap(s, f.rect!)) return { depth: d - 1, by: this.fixedLabel(f) };
-      for (const b of blockers) if (overlap(s, b.r)) return { depth: d - 1, by: b.label.toLowerCase() };
+      if (!this.inRoom(s)) return 'le mur';
+      for (const f of this.hard) if (overlap(s, f.rect!)) return this.fixedLabel(f);
+      for (const b of blockers) if (overlap(s, b.r)) return b.label.toLowerCase();
+      return null;
+    };
+    // pas de 5 cm, puis affinage au centimètre (la bande ne fait que grandir, le blocage est monotone)
+    let free = 0;
+    for (let d = 5; d <= max; d += 5) { if (blockedBy(d)) break; free = d; }
+    for (let d = free + 1; d <= max; d++) {
+      const by = blockedBy(d);
+      if (by) return { depth: d - 1, by };
     }
     return { depth: max, by: null };
   }
 
   /** Cases de 5 cm accessibles depuis l'entrée par un passage d'environ 45 cm. */
-  circulation(rects: Rect[]) {
-    const W = Math.ceil(this.maxX / CELL), H = Math.ceil(this.maxY / CELL);
-    const blocked = new Uint8Array(W * H);
-    const all = rects.concat(this.hard.map((h) => h.rect!));
+  private baseGrid?: Uint8Array;
+  /** Cases bloquées de la pièce vide (murs et obstacles), calculées une seule fois. */
+  private emptyGrid(W: number, H: number) {
+    if (this.baseGrid) return this.baseGrid;
+    const g = new Uint8Array(W * H);
     for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
       const cx = i * CELL + CELL / 2, cy = j * CELL + CELL / 2;
       let b = !pointInPoly(cx, cy, this.data.polygon);
-      if (!b) for (const r of all) if (cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h) { b = true; break; }
-      blocked[j * W + i] = b ? 1 : 0;
+      if (!b) for (const h of this.hard) { const r = h.rect!; if (cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h) { b = true; break; } }
+      g[j * W + i] = b ? 1 : 0;
+    }
+    return (this.baseGrid = g);
+  }
+
+  circulation(rects: Rect[]) {
+    const W = Math.ceil(this.maxX / CELL), H = Math.ceil(this.maxY / CELL);
+    const blocked = this.emptyGrid(W, H).slice();
+    for (const r of rects) {
+      // cases dont le centre est strictement dans le rectangle
+      const i0 = Math.max(0, Math.floor((r.x - CELL / 2) / CELL) + 1), i1 = Math.min(W - 1, Math.ceil((r.x + r.w - CELL / 2) / CELL) - 1);
+      const j0 = Math.max(0, Math.floor((r.y - CELL / 2) / CELL) + 1), j1 = Math.min(H - 1, Math.ceil((r.y + r.h - CELL / 2) / CELL) - 1);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) blocked[j * W + i] = 1;
     }
     const dist = new Float64Array(W * H);
     for (let k = 0; k < W * H; k++) dist[k] = blocked[k] ? 0 : 1e9;

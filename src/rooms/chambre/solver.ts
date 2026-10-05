@@ -76,7 +76,9 @@ export function solveChambre(geo: RoomGeo, base: Layout, opts: SolveOptions = {}
   const describe = (l: Layout) => {
     const get = (t: string) => l.find((i) => i.type === t);
     const desk = get('desk')!, w = get('wardrobe')!;
-    return [`Lit ${geo.wallName(get('bed'))}`, `armoire ${w.w}`, `bureau ${desk.w}×${desk.d}${desk.notch ? ' découpé' : ''}`, get('dresser') ? '' : 'sans commode', get('piano') ? 'piano' : '']
+    const dr = get('dresser'), pi = get('piano');
+    return [`Lit ${geo.wallName(get('bed'))}`, `armoire ${w.w} ${geo.wallName(w)}`, `bureau ${desk.w}×${desk.d} ${geo.wallName(desk)}`,
+      dr ? `commode ${geo.wallName(dr)}` : 'sans commode', pi ? `piano ${geo.wallName(pi)}` : '']
       .filter(Boolean).join(' · ');
   };
   return { families: families(results, sig, describe, opts.limit ?? 8), evaluated, valid: results.length, ms: Date.now() - t0 };

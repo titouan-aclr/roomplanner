@@ -479,10 +479,14 @@ export class App {
     const status = $('#solveStatus', this.root), btn = $<HTMLButtonElement>('#solve', this.root);
     this.worker?.terminate();
     this.worker = new Worker(new URL('./solver.worker.ts', import.meta.url), { type: 'module' });
-    status.textContent = 'Recherche en cours, 1 à 3 minutes…';
+    const t0 = Date.now();
+    const tick = window.setInterval(() => { status.textContent = `Recherche en cours… ${Math.round((Date.now() - t0) / 1000)} s (souvent 1 à 4 minutes)`; }, 1000);
+    status.textContent = 'Recherche en cours…';
     btn.disabled = true;
     $('#results', this.root).innerHTML = '';
+    this.worker.onerror = (e) => { clearInterval(tick); btn.disabled = false; status.textContent = `Le solveur n'a pas pu démarrer : ${e.message}`; };
     this.worker.onmessage = (e) => {
+      clearInterval(tick);
       btn.disabled = false;
       if (!e.data.ok) { status.textContent = `La recherche a échoué : ${e.data.error}`; return; }
       const r = e.data.result as { families: SolveFamily[]; evaluated: number; valid: number };
