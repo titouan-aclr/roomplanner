@@ -77,6 +77,12 @@ L'image est multi-architecture (`node:24-slim`) et fonctionne sur un VPS ARM64 (
 
 Variante sans l'interface Dokploy : `docker compose -f docker-compose.prod.yml up -d --build`.
 
+En local avec Docker (port 3000 exposé, identifiants dans `.env`) :
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.local.yml up -d --build
+```
+
 ## Reprendre les dispositions de l'ancienne version
 
 1. Dans l'ancienne page, cliquer sur **Exporter tous les onglets** (le texte est copié).
