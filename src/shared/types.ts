@@ -154,6 +154,19 @@ export interface SolveOptions {
   allowNotch?: boolean;
   /** Nombre maximum de familles renvoyées. */
   limit?: number;
+  /** Largeurs et profondeurs à essayer par type de meuble (sinon celles du meuble de départ). */
+  sizes?: Record<string, { widths?: number[]; depths?: number[] }>;
+}
+
+/** Paramètres proposés par défaut sur la page Explorer. */
+export interface ExploreDefaults {
+  /** Types toujours placés par le solveur. */
+  required: string[];
+  /** Types optionnels que l'on peut cocher. */
+  optional: string[];
+  sizes: Record<string, { widths: number[]; depths: number[] }>;
+  /** Élément fixe autour duquel un plateau peut être découpé (option proposée). */
+  notch?: { fixed: string; label: string };
 }
 
 export interface SolveFamily { layout: Layout; score: number; freeM2: number; bedSides: number; bedFoot: boolean; summary: string }
@@ -170,4 +183,5 @@ export interface RoomModule {
   evaluate(layout: Layout): Evaluation;
   solve(base: Layout, opts?: SolveOptions): SolveResult;
   proposals: Proposal[];
+  explore: ExploreDefaults;
 }

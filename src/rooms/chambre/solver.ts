@@ -29,17 +29,23 @@ export function solveChambre(geo: RoomGeo, base: Layout, opts: SolveOptions = {}
   };
 
   const bedT = tpl('bed'), wardT = tpl('wardrobe'), deskT = tpl('desk');
-  const beds = geo.wallCandidates(bedT, [{ w: bedT.w, d: bedT.d }], { step }).filter(usable);
-  const wardrobes = geo.wallCandidates(wardT, uniq([140, 160, wardT.w]).filter(inWidth('wardrobe')).map((w) => ({ w, d: wardT.d })), { step })
+  const sz = (type: string, cur: PlacedItem, defW: number[], defD: number[]) => ({
+    widths: uniq(opts.sizes?.[type]?.widths?.length ? opts.sizes[type].widths! : [...defW, cur.w]).filter(inWidth(type)),
+    depths: uniq(opts.sizes?.[type]?.depths?.length ? opts.sizes[type].depths! : [...defD, cur.d]),
+  });
+  const wardSz = sz('wardrobe', wardT, [140, 160], []), deskSz = sz('desk', deskT, [140, 160], [60, 70]);
+  const wardrobes = geo.wallCandidates(wardT, wardSz.widths.flatMap((w) => wardSz.depths.map((d) => ({ w, d }))), { step })
     .filter((c) => geo.backOnWall(c) && usable(c));
-  const deskSizes = uniq([140, 160, deskT.w]).filter(inWidth('desk')).flatMap((w) => uniq([60, 70, deskT.d]).map((d) => ({ w, d })));
+  const deskSizes = deskSz.widths.flatMap((w) => deskSz.depths.map((d) => ({ w, d })));
+  const all = (s: { widths: number[]; depths: number[] }) => s.widths.flatMap((w) => s.depths.map((d) => ({ w, d })));
+  const beds = geo.wallCandidates(bedT, all(sz('bed', bedT, [], [])), { step }).filter(usable);
   const desks = geo.wallCandidates(deskT, deskSizes, { step, sidePush: true })
     .concat(opts.allowNotch ? geo.notchCandidates(deskT, deskSizes, 'chimney', step) : [])
     .filter(usable);
   const groups: (PlacedItem | null)[][] = [beds, wardrobes, desks];
   if (visible('dresser')) {
     const drT = tpl('dresser');
-    groups.push([...geo.wallCandidates(drT, [{ w: drT.w, d: drT.d }], { step, sidePush: true }).filter(usable), null]);
+    groups.push([...geo.wallCandidates(drT, all(sz('dresser', drT, [], [])), { step, sidePush: true }).filter(usable), null]);
   }
 
   const clash = makeClash(geo, minFront);
@@ -55,7 +61,7 @@ export function solveChambre(geo: RoomGeo, base: Layout, opts: SolveOptions = {}
   const sig = (l: Layout) => ['bed', 'wardrobe', 'desk', 'dresser', 'piano'].map((t) => geo.wallName(l.find((i) => i.type === t))).join('/');
   if (visible('piano')) {
     const piT = tpl('piano');
-    const pianoWall = geo.wallCandidates(piT, [{ w: piT.w, d: piT.d }], { step }).filter(usable);
+    const pianoWall = geo.wallCandidates(piT, all(sz('piano', piT, [], [])), { step }).filter(usable);
     const perSig = new Map<string, number>();
     const pool = [...results].sort((a, b) => b.ev.score - a.ev.score).filter((r) => {
       const s = sig(r.layout), n = perSig.get(s) ?? 0;

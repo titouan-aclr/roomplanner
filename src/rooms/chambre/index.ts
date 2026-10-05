@@ -16,4 +16,16 @@ export const chambre: RoomModule = {
   evaluate: (layout) => evaluateChambre(geo, layout),
   solve: (base, opts) => solveChambre(geo, base, opts),
   proposals,
+  explore: {
+    required: ['bed', 'wardrobe', 'desk'],
+    optional: ['dresser', 'piano'],
+    sizes: {
+      bed: { widths: [150], depths: [212] },
+      wardrobe: { widths: [140, 160], depths: [60] },
+      desk: { widths: [140, 160], depths: [60, 70] },
+      dresser: { widths: [60], depths: [40] },
+      piano: { widths: [135], depths: [32] },
+    },
+    notch: { fixed: 'chimney', label: 'Autoriser le bureau découpé autour de la cheminée' },
+  },
 };
