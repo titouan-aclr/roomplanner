@@ -1,0 +1,14 @@
+services:
+  roomplanner:
+    build: .
+    restart: unless-stopped
+    environment:
+      ADMIN_PSEUDO: ${ADMIN_PSEUDO}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    volumes:
+      - roomplanner-data:/data
+    expose:
+      - "3000"
+
+volumes:
+  roomplanner-data:
