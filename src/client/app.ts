@@ -1,6 +1,6 @@
 import { roomList, rooms } from '../rooms';
 import { footprint, polygonArea, ROTATE_CW } from '../shared/geometry';
-import type { Evaluation, Face, Layout, PlacedItem, RoomModule, SolveFamily } from '../shared/types';
+import type { Evaluation, Face, Layout, PlacedItem, RoomModule } from '../shared/types';
 import { api, ApiError, type LayoutDto, type Me } from './api';
 import { $, esc, fmtM2, THUMB_DOWN, THUMB_UP, toast } from './dom';
 import { PlanView, thumbnail } from './plan';
@@ -32,8 +32,6 @@ export class App {
   private ev!: Evaluation;
   private saveTimer = 0;
   private saving: 'idle' | 'pending' | 'saving' | 'saved' | 'error' = 'idle';
-  private solved: SolveFamily[] = [];
-  private worker: Worker | null = null;
   private raf = 0;
   private readonly keyHandler = (e: KeyboardEvent) => this.onKey(e);
   private readonly unloadHandler = (e: BeforeUnloadEvent) => { if (this.saving === 'pending' || this.saving === 'saving') e.preventDefault(); };
@@ -49,7 +47,6 @@ export class App {
 
   stop() {
     void this.flushSave();
-    this.worker?.terminate();
     document.removeEventListener('keydown', this.keyHandler);
     window.removeEventListener('beforeunload', this.unloadHandler);
     document.body.classList.remove('drawer-open', 'sheet-open');
@@ -66,7 +63,6 @@ export class App {
     await this.flushSave();
     this.room = rooms[roomId];
     store.set('room', roomId);
-    this.solved = [];
     this.selected = null;
     this.shell();
     this.plan = new PlanView($<HTMLElement>('#svg', this.root) as unknown as SVGSVGElement, {
@@ -254,6 +250,7 @@ export class App {
               <button class="btn primary" id="new" type="button">+ Nouvelle</button>
             </div>
             <div class="layout-list" id="layoutList" role="list"></div>
+            <a class="btn explore-link" href="/explorer" data-nav>Explorer avec le solveur</a>
           </nav>
           <div class="scrim" id="scrim" hidden></div>
           <main class="content" id="content">
@@ -276,7 +273,6 @@ export class App {
                 <div class="sheet card" id="editCard"></div>
                 <div class="sheet card" id="verdictCard"></div>
                 <div class="sheet card" id="rankCard"></div>
-                <div class="sheet card" id="exploreCard"></div>
                 <div class="sheet card" id="copyCard" hidden><h2>Texte à me renvoyer</h2><p class="muted" id="copyMsg"></p><textarea class="copy" id="copyText" readonly></textarea></div>
               </aside>
             </div>
@@ -295,7 +291,6 @@ export class App {
     $('#showClr', r).addEventListener('change', (e) => { this.showClr = (e.target as HTMLInputElement).checked; this.plan.draw(); });
     $('#showWalk', r).addEventListener('change', (e) => { this.showWalk = (e.target as HTMLInputElement).checked; this.plan.draw(); });
     $('#new', r).addEventListener('click', () => void this.createLayout('Nouvelle disposition', clone(this.room.starter)));
-    this.renderExplore();
   }
 
   private toggleDrawer() {
@@ -523,53 +518,6 @@ export class App {
         <span class="t"><b>${esc(l.name)}</b><span class="muted">${esc(l.owner.pseudo)} · 👍 ${l.votes.up} · 👎 ${l.votes.down}</span></span>
       </button>`).join('')}</div>` : '<p class="muted">Pas encore de vote. Utilise les pouces dans le bilan de chaque disposition.</p>'}</details>`;
     card.querySelectorAll<HTMLButtonElement>('[data-id]').forEach((r) => r.addEventListener('click', () => this.setActive(Number(r.dataset.id))));
-  }
-
-  // =====================================================================
-  // Solveur
-  // =====================================================================
-  private renderExplore() {
-    const card = $('#exploreCard', this.root);
-    card.innerHTML = `<details><summary><h2>Explorer avec le solveur</h2></summary>
-      <p class="muted">Le solveur teste toutes les positions contre les murs (pas de 10 cm, 4 orientations) avec les meubles de la disposition active, et garde la meilleure version de chaque famille.</p>
-      <label class="check"><input type="checkbox" id="solveNotch" checked> Autoriser le bureau découpé autour de la cheminée</label>
-      <div class="row"><button class="btn primary" id="solve" type="button">Lancer la recherche</button></div>
-      <p class="muted" id="solveStatus" role="status"></p>
-      <div class="results" id="results"></div></details>`;
-    $('#solve', card).addEventListener('click', () => this.runSolver());
-  }
-
-  private runSolver() {
-    const cur = this.current;
-    if (!cur) return;
-    const status = $('#solveStatus', this.root), btn = $<HTMLButtonElement>('#solve', this.root);
-    this.worker?.terminate();
-    this.worker = new Worker(new URL('./solver.worker.ts', import.meta.url), { type: 'module' });
-    const t0 = Date.now();
-    const tick = window.setInterval(() => { status.textContent = `Recherche en cours… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
-    status.textContent = 'Recherche en cours…';
-    btn.disabled = true;
-    $('#results', this.root).innerHTML = '';
-    this.worker.onerror = (e) => { clearInterval(tick); btn.disabled = false; status.textContent = `Le solveur n'a pas pu démarrer : ${e.message}`; };
-    this.worker.onmessage = (e) => {
-      clearInterval(tick);
-      btn.disabled = false;
-      if (!e.data.ok) { status.textContent = `La recherche a échoué : ${e.data.error}`; return; }
-      const r = e.data.result as { families: SolveFamily[]; evaluated: number; valid: number };
-      this.solved = r.families;
-      status.textContent = `${r.evaluated.toLocaleString('fr-FR')} combinaisons testées, ${r.valid.toLocaleString('fr-FR')} valides, ${r.families.length} familles.`;
-      $('#results', this.root).innerHTML = r.families.map((f, i) => `
-        <div class="res">${thumbnail(this.room, f.layout)}<div class="t"><b>${esc(f.summary)}</b>
-          <span>circulation ${fmtM2(f.freeM2)} · lit ${f.bedSides ? `${f.bedSides} côté(s)` : 'par le pied'}</span>
-          <div class="row"><button class="btn" type="button" data-open="${i}">Créer cette disposition</button></div></div></div>`).join('')
-        || '<p class="muted">Aucune disposition ne passe avec ces dimensions.</p>';
-      $('#results', this.root).querySelectorAll<HTMLButtonElement>('[data-open]').forEach((b) => b.addEventListener('click', () => {
-        const fam = this.solved[Number(b.dataset.open)];
-        const extra = cur.items.filter((i) => !fam.layout.some((p) => p.id === i.id)).map((i) => ({ ...i, hidden: true }));
-        void this.createLayout(`Solveur : ${fam.summary}`.slice(0, 80), [...clone(fam.layout), ...extra], cur.id);
-      }));
-    };
-    this.worker.postMessage({ roomId: this.room.data.id, base: clone(cur.items), allowNotch: $<HTMLInputElement>('#solveNotch', this.root).checked });
   }
 
   // =====================================================================
