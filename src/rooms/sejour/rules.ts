@@ -4,8 +4,11 @@ import { frontRect, localRect, overlap } from '../../shared/geometry';
 import type { Evaluation, Layout, PlacedItem, Rect, Side } from '../../shared/types';
 import { catalog } from './catalog';
 
-/** Ordre de priorité donné : canapé, lampadaire, fauteuil, table basse, puis piano. */
-const PRESENCE: Record<string, number> = { sofa: 40, lamp: 20, armchair: 15, coffee: 12, piano: 8 };
+/**
+ * Bonus de présence, dans l'ordre de priorité : canapé, fauteuil, piano. Le lampadaire et la table d'appoint
+ * ne comptent pas dans la note : ils se casent toujours quelque part, on les place à la main.
+ */
+const PRESENCE: Record<string, number> = { sofa: 40, armchair: 15, piano: 8 };
 const SEAT = { comfort: 75, min: 60, width: 50 };
 /** Largeur d'un accoudoir de canapé (15 à 25 cm en général). */
 export const ARMREST = 20;
@@ -63,31 +66,24 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
       depths.push({ depth: d, ok });
       if (!ok) continue;
       sides.push(side);
-      if (d < SEAT.comfort) { tight.push(`${SIDE_NAME[side]} ${d} cm`); c.score -= (SEAT.comfort - d) * 0.2; }
+      if (d < SEAT.comfort && sides.length <= wanted) tight.push(`${SIDE_NAME[side]} ${d} cm`);
     }
     c.seats[t.id] = sides.slice(0, wanted);
     // profondeur libre derrière chaque côté (haut, bas, gauche, droite), pour dessiner les dégagements
     c.sideDepths[t.id] = depths;
     const n = Math.min(sides.length, wanted);
+    // 2 chaises suffisent ; une 3e ou une 4e est un petit plus
     if (sides.length < 2) c.err(t.id, `${t.label} : place pour ${sides.length} chaise${sides.length > 1 ? 's' : ''} seulement, il en faut au moins 2 (${SEAT.min} cm minimum derrière chaque chaise, ${SEAT.comfort} pour être à l'aise).`);
-    else if (n < wanted) c.warn(t.id, `${t.label} : place pour ${n} chaises sur ${wanted} souhaitées.`);
-    else c.info(t.id, `${t.label} : ${n} chaises.`);
+    else c.info(t.id, `${t.label} : ${n} chaises${n < wanted ? ` (${wanted} souhaitées)` : ''}.`);
     if (tight.length) c.warn(t.id, `${t.label} : chaises un peu à l'étroit (${tight.join(', ')} ; confort ${SEAT.comfort}).`);
-    c.score += n * 8;
-    // près de la cuisine, c'est plus pratique pour servir
-    const k = geo.zone('kitchenWork');
-    if (k) { const [kx, ky] = center(k.rect), [tx, ty] = center(f); c.score -= Math.hypot(kx - tx, ky - ty) / 25; }
+    c.score += Math.max(0, n - 2) * 2 - tight.length;
   }
 
-  // Canapé : de préférence dos au mur
-  if (sofa) {
-    c.score += PRESENCE.sofa + Math.min(sofa.w - 150, 50) * 0.1;
-    if (!geo.backOnWall(sofa)) { c.warn(sofa.id, `${sofa.label} décollé du mur : il coupe la pièce.`); c.score -= 5; }
-  }
+  // Canapé : contre un mur ou au milieu de la pièce, peu importe ; un peu plus large, c'est mieux
+  if (sofa) c.score += PRESENCE.sofa + Math.min(sofa.w - 150, 50) * 0.1;
 
-  // Table basse ou d'appoint : devant le canapé, ou (si elle est petite) à côté du canapé ou du fauteuil
+  // Table d'appoint (hors note) : jamais à moins de 30 cm devant le canapé ou le fauteuil
   if (coffee) {
-    c.score += PRESENCE.coffee;
     const seatsAround = [sofa, armchair].filter(Boolean) as PlacedItem[];
     const frontOf = seatsAround.filter((s) => {
       const zone = frontRect(s, 80), [x, y] = center(fp(coffee));
@@ -97,30 +93,10 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
       const g = gap(fp(coffee), fp(s));
       if (g < 30) c.err(coffee.id, `${coffee.label} à ${Math.round(g)} cm ${s.type === 'sofa' ? 'du canapé' : 'du fauteuil'} : 30 cm minimum devant une assise.`);
     }
-    const small = coffee.w <= 50 && coffee.d <= 50;
-    const beside = small && seatsAround.some((s) => gap(fp(coffee), fp(s)) <= 40);
-    if (!frontOf.length && !beside) { c.warn(coffee.id, `${coffee.label} : ni devant le canapé ou le fauteuil, ni à côté d'une assise.`); c.score -= 8; }
   }
 
-  // Fauteuil : assez proche du canapé ou de la table basse pour discuter
-  if (armchair) {
-    c.score += PRESENCE.armchair;
-    const targets = [sofa, coffee].filter(Boolean) as PlacedItem[];
-    if (targets.length) {
-      const [ax, ay] = center(fp(armchair));
-      const d = Math.min(...targets.map((t) => { const [bx, by] = center(fp(t)); return Math.hypot(ax - bx, ay - by); }));
-      if (d > 220) { c.warn(armchair.id, `${armchair.label} loin du coin salon (${Math.round(d)} cm) : il sera isolé.`); c.score -= 6; }
-      else c.score += 4;
-    }
-  }
-
-  // Lampadaire : à côté d'une assise, la pièce n'a pas d'éclairage au plafond
-  for (const lamp of c.byType('lamp')) {
-    c.score += PRESENCE.lamp;
-    const seats = [sofa, armchair].filter(Boolean) as PlacedItem[];
-    const near = seats.some((s) => gap(fp(lamp), fp(s)) <= 40);
-    if (!near) { c.warn(lamp.id, `${lamp.label} loin du canapé et du fauteuil : il éclairera mal le coin salon.`); c.score -= 8; }
-  }
+  // Fauteuil : n'importe où, sa position par rapport au canapé ne compte pas
+  if (armchair) c.score += PRESENCE.armchair;
 
   // Gros meubles juste devant la cheminée : à éviter (une table d'appoint ne gêne pas)
   const chimney = geo.fixed('chimney')?.rect;
