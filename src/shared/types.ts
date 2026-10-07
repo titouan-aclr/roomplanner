@@ -127,6 +127,8 @@ export interface PlacedItem {
   min?: number;
   sides?: number;
   sidesMin?: number;
+  /** Nombre souhaité (chaises autour d'une table, etc.). */
+  count?: number;
 }
 
 export type Layout = PlacedItem[];
@@ -144,6 +146,8 @@ export interface Evaluation {
   frontDepth: Record<string, number>;
   freeM2: number;
   reach: { W: number; H: number; cell: number; cells: Uint8Array };
+  /** Côtés d'une table où une chaise trouve sa place (pour le dessin). */
+  seats?: Record<string, Side[]>;
 }
 
 // ---------- Module de pièce ----------

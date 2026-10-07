@@ -143,7 +143,8 @@ export class RoomGeo {
     return (this.baseGrid = g);
   }
 
-  circulation(rects: Rect[]) {
+  /** `fromEntry` : ne partir que de cette entrée (pour vérifier qu'on peut aller d'une porte à l'autre). */
+  circulation(rects: Rect[], fromEntry?: number) {
     const W = Math.ceil(this.maxX / CELL), H = Math.ceil(this.maxY / CELL);
     const blocked = this.emptyGrid(W, H).slice();
     for (const r of rects) {
@@ -167,7 +168,8 @@ export class RoomGeo {
     const pass = (k: number) => dist[k] >= PASSAGE_RADIUS;
     const reach = new Uint8Array(W * H);
     const queue: number[] = [];
-    for (const { rect: door } of this.entries) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const seeds = fromEntry == null ? this.entries : this.entries.slice(fromEntry, fromEntry + 1);
+    for (const { rect: door } of seeds) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
       const cx = i * CELL + CELL / 2, cy = j * CELL + CELL / 2, k = j * W + i;
       if (!reach[k] && cx > door.x + 15 && cx < door.x + door.w - 15 && cy > door.y && cy < door.y + door.h && pass(k)) { reach[k] = 1; queue.push(k); }
     }
@@ -285,6 +287,7 @@ export class Checker {
   frontDepth: Record<string, number> = {};
   fronts = new Map<string, Rect>();
   sideDepths: Evaluation['sideDepths'] = {};
+  seats: NonNullable<Evaluation['seats']> = {};
   bedSides = 0;
   bedFoot = false;
   circ!: ReturnType<RoomGeo['circulation']>;
@@ -370,6 +373,23 @@ export class Checker {
     }
   }
 
+  /** Toutes les entrées doivent être reliées entre elles par un passage d'environ 45 cm. */
+  entriesConnected() {
+    const entries = this.geo.entries;
+    if (entries.length < 2) return;
+    const from = this.geo.circulation([...this.fp.values()], 0);
+    for (const e of entries.slice(1)) {
+      const inner = { x: e.rect.x + 15, y: e.rect.y, w: Math.max(1, e.rect.w - 30), h: e.rect.h };
+      if (!from.reaches(inner)) this.err(null, `Pas de passage d'au moins 45 cm entre ${entries[0].label.toLowerCase()} et ${e.label.toLowerCase()}.`);
+    }
+  }
+
+  /** Une zone à garder libre (devant la cuisine, la fenêtre…) doit rester accessible depuis l'entrée. */
+  zoneReachable(zoneId: string, message: string) {
+    const z = this.geo.zone(zoneId);
+    if (z && !this.circ.reaches(z.rect)) this.err(null, message);
+  }
+
   /** Circulation depuis la porte, et accès à l'espace devant chaque meuble. */
   reachability() {
     this.circ = this.geo.circulation([...this.fp.values()]);
@@ -437,7 +457,7 @@ export class Checker {
       score: Math.round(this.score * 10) / 10,
       issues: this.errors.concat(this.notes),
       bedSides: this.bedSides, bedFoot: this.bedFoot,
-      sideDepths: this.sideDepths, frontDepth: this.frontDepth,
+      sideDepths: this.sideDepths, frontDepth: this.frontDepth, seats: this.seats,
       freeM2: this.circ.areaM2,
       reach: { W: this.circ.W, H: this.circ.H, cell: CELL, cells: this.circ.cells },
     };

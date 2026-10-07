@@ -18,7 +18,7 @@ export function parseItems(raw: unknown): Layout | null {
     if (!r || typeof r.id !== 'string' || typeof r.type !== 'string' || typeof r.label !== 'string') return null;
     if (!FACES.has(r.face as string) || ![r.x, r.y, r.w, r.d].every(num)) return null;
     const it: PlacedItem = { id: r.id.slice(0, 40), type: r.type.slice(0, 40), label: r.label.slice(0, 60), face: r.face as PlacedItem['face'], x: r.x as number, y: r.y as number, w: r.w as number, d: r.d as number };
-    for (const k of ['h', 'clear', 'min', 'sides', 'sidesMin'] as const) if (num(r[k])) it[k] = r[k] as number;
+    for (const k of ['h', 'clear', 'min', 'sides', 'sidesMin', 'count'] as const) if (num(r[k])) it[k] = r[k] as number;
     if (r.hidden === true) it.hidden = true;
     if (typeof r.notch === 'string') it.notch = r.notch.slice(0, 40);
     out.push(it);
