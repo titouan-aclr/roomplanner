@@ -21,6 +21,7 @@ export function parseItems(raw: unknown): Layout | null {
     for (const k of ['h', 'clear', 'min', 'sides', 'sidesMin', 'count'] as const) if (num(r[k])) it[k] = r[k] as number;
     if (r.hidden === true) it.hidden = true;
     if (typeof r.notch === 'string') it.notch = r.notch.slice(0, 40);
+    if (r.tilt === true) it.tilt = true;
     out.push(it);
   }
   return out;

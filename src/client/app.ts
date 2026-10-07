@@ -14,7 +14,7 @@ const store = {
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 const samePlace = (a: Layout, b: Layout) => a.length === b.length && a.every((it) => {
   const o = b.find((x) => x.id === it.id);
-  return o && (['face', 'x', 'y', 'w', 'd', 'hidden', 'notch'] as const).every((k) => (it[k] ?? null) === (o[k] ?? null));
+  return o && (['face', 'x', 'y', 'w', 'd', 'hidden', 'notch', 'tilt'] as const).every((k) => (it[k] ?? null) === (o[k] ?? null));
 });
 
 /** Page principale : liste des dispositions (barre latérale), plan et panneaux de la disposition active. */
@@ -211,9 +211,10 @@ export class App {
     if (done) this.render();
   }
 
-  private setFace(it: PlacedItem, face: Face) {
+  private setFace(it: PlacedItem, face: Face, tilt = it.tilt) {
     const f0 = footprint(it), cx = f0.x + f0.w / 2, cy = f0.y + f0.h / 2;
     it.face = face;
+    it.tilt = tilt || undefined;
     const f1 = footprint(it);
     it.x = Math.round(cx - f1.w / 2); it.y = Math.round(cy - f1.h / 2);
   }
@@ -470,6 +471,7 @@ export class App {
           <label>${clrName}, minimum<input id="f-min" type="number" inputmode="numeric" min="0" max="200" value="${min}"${dis}></label>
           ${spec.render === 'roundTable' ? `<label class="full">Chaises souhaitées (2 à 4)<input id="f-count" type="number" inputmode="numeric" min="2" max="4" value="${it.count ?? 4}"${dis}></label>` : ''}
           ${spec.notchable ? `<label class="check full"><input id="f-notch" type="checkbox"${it.notch ? ' checked' : ''}${dis}> Découpé autour de ${esc(this.room.data.fixed.find((f) => f.id === spec.notchable)?.labelDef ?? spec.notchable)}</label>` : ''}
+          ${spec.tilt ? `<label class="check full"><input id="f-tilt" type="checkbox"${it.tilt ? ' checked' : ''}${dis}> En biais (tourné de 45°)</label>` : ''}
           <label class="full">Dos contre<select id="f-face"${dis}>${(Object.keys(WALL) as Face[]).map((f) => `<option value="${f}"${f === it.face ? ' selected' : ''}>${WALL[f]}</option>`).join('')}</select></label>
           <label>x (cm)<input id="f-x" type="number" inputmode="numeric" value="${it.x}"${dis}></label>
           <label>y (cm)<input id="f-y" type="number" inputmode="numeric" value="${it.y}"${dis}></label>
@@ -486,6 +488,7 @@ export class App {
         bind('#f-min', (v) => { if (isBed) it.sidesMin = pos(v); else it.min = pos(v); });
         bind('#f-count', (v) => { const n = Math.round(Number(v)); if (n >= 2 && n <= 4) it.count = n; });
         bind('#f-face', (v) => this.setFace(it, v as Face), 'change');
+        $('#f-tilt', card)?.addEventListener('change', (e) => this.mutate(() => this.setFace(it, it.face, (e.target as HTMLInputElement).checked)));
         bind('#f-x', (v) => { it.x = Number(v) || 0; });
         bind('#f-y', (v) => { it.y = Number(v) || 0; });
         $('#f-notch', card)?.addEventListener('change', (e) => this.mutate(() => {
@@ -548,7 +551,7 @@ export class App {
       const spec = this.room.catalog[it.type];
       const extra = spec?.sides ? `passage latéral ${it.sides ?? spec.sides.comfort} (min ${it.sidesMin ?? spec.sides.min}) cm`
         : `espace devant ${it.clear ?? spec?.front?.comfort ?? 0} (min ${it.min ?? spec?.front?.min ?? 0}) cm`;
-      lines.push(`- ${it.label} : ${it.w} × ${it.d}, dos contre ${WALL[it.face]}, x=${it.x} y=${it.y}, ${extra}${it.notch ? `, découpé autour de ${it.notch}` : ''}`);
+      lines.push(`- ${it.label} : ${it.w} × ${it.d}, dos contre ${WALL[it.face]}${it.tilt ? ' (en biais, 45°)' : ''}, x=${it.x} y=${it.y}, ${extra}${it.notch ? `, découpé autour de ${it.notch}` : ''}`);
     }
     lines.push(`Bilan : ${ev.ok ? 'tout passe' : 'à corriger'} · circulation ${ev.freeM2.toFixed(2)} m² · lit accessible ${ev.bedSides} côté(s)`);
     for (const i of ev.issues) lines.push(`  · ${i.msg}`);

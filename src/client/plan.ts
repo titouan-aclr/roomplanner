@@ -136,20 +136,24 @@ export class PlanView {
         'data-id': it.id, style: `--c:${color(it)}`, tabindex: 0, role: 'button', 'aria-label': `${it.label} ${it.w} par ${it.d}`,
       }, g);
       const round = spec?.render === 'roundTable' || spec?.render === 'lamp';
-      if (round) el('circle', { cx: f.x + f.w / 2, cy: f.y + f.h / 2, r: Math.min(f.w, f.h) / 2, class: 'fp' }, gi);
-      else rect(gi, f, 'fp');
-      const L = (u: number, v: number, du: number, dv: number) => localRect(it, u, v, du, dv);
+      // en biais : on dessine le meuble droit, centré dans son carré englobant, puis on le tourne de 45°
+      const tcx = f.x + f.w / 2, tcy = f.y + f.h / 2;
+      const di: PlacedItem = it.tilt ? (() => { const u = footprint({ ...it, tilt: false }); return { ...it, tilt: false, x: tcx - u.w / 2, y: tcy - u.h / 2 }; })() : it;
+      const gx = it.tilt ? el('g', { transform: `rotate(45 ${tcx} ${tcy})` }, gi) : gi;
+      if (round) el('circle', { cx: tcx, cy: tcy, r: Math.min(f.w, f.h) / 2, class: 'fp' }, gi);
+      else rect(gx, footprint(di), 'fp');
+      const L = (u: number, v: number, du: number, dv: number) => localRect(di, u, v, du, dv);
       switch (spec?.render) {
         case 'bed':
-          rect(gi, L(0, 0, it.w, 7), 'det');
-          rect(gi, L(10, 12, it.w / 2 - 15, 28), 'det', { rx: 4 });
-          rect(gi, L(it.w / 2 + 5, 12, it.w / 2 - 15, 28), 'det', { rx: 4 });
-          rect(gi, L(4, it.d * 0.36, it.w - 8, it.d * 0.64 - 4), 'det');
+          rect(gx, L(0, 0, it.w, 7), 'det');
+          rect(gx, L(10, 12, it.w / 2 - 15, 28), 'det', { rx: 4 });
+          rect(gx, L(it.w / 2 + 5, 12, it.w / 2 - 15, 28), 'det', { rx: 4 });
+          rect(gx, L(4, it.d * 0.36, it.w - 8, it.d * 0.64 - 4), 'det');
           break;
         case 'wardrobe': {
           const n = Math.max(2, Math.round(it.w / 50));
-          for (let i = 1; i < n; i++) line(gi, L((it.w / n) * i, it.d - 6, 0.01, 6), 'detl');
-          line(gi, L(4, it.d / 2, it.w - 8, 0.01), 'detl', { 'stroke-dasharray': '4 3' });
+          for (let i = 1; i < n; i++) line(gx, L((it.w / n) * i, it.d - 6, 0.01, 6), 'detl');
+          line(gx, L(4, it.d / 2, it.w - 8, 0.01), 'detl', { 'stroke-dasharray': '4 3' });
           break;
         }
         case 'desk': {
@@ -159,10 +163,10 @@ export class PlanView {
             rect(gi, r, 'notch');
             txt(gi, r.x + r.w / 2, r.y + 11, n.fixed.label.toLowerCase(), 'notch-t', { 'text-anchor': 'middle' });
             txt(gi, r.x + r.w / 2, r.y + 20, `étagère h ${n.fixed.height ?? ''}`, 'notch-t', { 'text-anchor': 'middle' });
-          } else rect(gi, L(it.w / 2 - 28, 8, 56, 5), 'det');
+          } else rect(gx, L(it.w / 2 - 28, 8, 56, 5), 'det');
           break;
         }
-        case 'dresser': rect(gi, L(it.w / 2 - 19, it.d / 2 - 19, 38, 36), 'det'); break;
+        case 'dresser': rect(gx, L(it.w / 2 - 19, it.d / 2 - 19, 38, 36), 'det'); break;
         case 'roundTable': {
           // chaises sur les côtés où il reste de la place
           const cx = f.x + f.w / 2, cy = f.y + f.h / 2, cw = 42, cd = 40, off = 8;
@@ -177,27 +181,27 @@ export class PlanView {
           break;
         }
         case 'sofa':
-          rect(gi, L(0, 0, it.w, 20), 'det', { rx: 4 });
-          rect(gi, L(0, 20, 20, it.d - 20), 'det', { rx: 4 });
-          rect(gi, L(it.w - 20, 20, 20, it.d - 20), 'det', { rx: 4 });
-          for (let i = 1; i < 3; i++) line(gi, L(20 + ((it.w - 40) / 3) * i, 22, 0.01, it.d - 26), 'detl');
+          rect(gx, L(0, 0, it.w, 20), 'det', { rx: 4 });
+          rect(gx, L(0, 20, 20, it.d - 20), 'det', { rx: 4 });
+          rect(gx, L(it.w - 20, 20, 20, it.d - 20), 'det', { rx: 4 });
+          for (let i = 1; i < 3; i++) line(gx, L(20 + ((it.w - 40) / 3) * i, 22, 0.01, it.d - 26), 'detl');
           break;
         case 'armchair':
-          rect(gi, L(4, 0, it.w - 8, 18), 'det', { rx: 8 });
-          rect(gi, L(8, 18, it.w - 16, it.d - 24), 'det', { rx: 10 });
+          rect(gx, L(4, 0, it.w - 8, 18), 'det', { rx: 8 });
+          rect(gx, L(8, 18, it.w - 16, it.d - 24), 'det', { rx: 10 });
           break;
         case 'lamp':
           el('circle', { cx: f.x + f.w / 2, cy: f.y + f.h / 2, r: Math.min(f.w, f.h) / 2 - 7, class: 'lampglow' }, gi);
           break;
-        case 'coffee': rect(gi, L(3, 3, it.w - 6, it.d - 6), 'det', { rx: 3 }); break;
+        case 'coffee': rect(gx, L(3, 3, it.w - 6, it.d - 6), 'det', { rx: 3 }); break;
         case 'piano': {
-          rect(gi, L(4, it.d - 15, it.w - 8, 11), 'keys');
+          rect(gx, L(4, it.d - 15, it.w - 8, 11), 'keys');
           const keys = 21;
-          for (let i = 1; i < keys; i++) if (i % 7 !== 3 && i % 7 !== 0) rect(gi, L(4 + ((it.w - 8) / keys) * i - 1.2, it.d - 15, 2.4, 6.5), 'blackkey');
+          for (let i = 1; i < keys; i++) if (i % 7 !== 3 && i % 7 !== 0) rect(gx, L(4 + ((it.w - 8) / keys) * i - 1.2, it.d - 15, 2.4, 6.5), 'blackkey');
           break;
         }
       }
-      if (!round) line(gi, L(0, it.d, it.w, 0.01), 'front');
+      if (!round) line(gx, L(0, it.d, it.w, 0.01), 'front');
       if (f.w < 45 && f.h < 45) continue; // trop petit pour une étiquette lisible
       // étiquette : sur la partie utile (hors clavier, hors encoche)
       const lb = spec?.render === 'piano' ? L(0, 0, it.w, it.d - 16) : f;
