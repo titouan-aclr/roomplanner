@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { rooms } from '../../rooms';
 import type { Layout, PlacedItem } from '../../shared/types';
@@ -28,19 +28,37 @@ export function parseItems(raw: unknown): Layout | null {
 
 const parseName = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 80) : null);
 
-function toDto(row: LayoutRow, owner: Pick<User, 'id' | 'pseudo'>, up: number, down: number, mine: number) {
+type Voters = { up: string[]; down: string[] };
+
+/** Qui a voté quoi, pour chaque disposition (réservé à l'administrateur). */
+async function votersFor(ids: number[]): Promise<Map<number, Voters>> {
+  const out = new Map<number, Voters>();
+  if (!ids.length) return out;
+  const rows = await db.select({ layoutId: schema.votes.layoutId, value: schema.votes.value, pseudo: schema.users.pseudo })
+    .from(schema.votes).innerJoin(schema.users, eq(schema.votes.userId, schema.users.id))
+    .where(inArray(schema.votes.layoutId, ids)).orderBy(asc(schema.users.pseudo));
+  for (const r of rows) {
+    const v = out.get(r.layoutId) ?? { up: [], down: [] };
+    (r.value > 0 ? v.up : v.down).push(r.pseudo);
+    out.set(r.layoutId, v);
+  }
+  return out;
+}
+
+function toDto(row: LayoutRow, owner: Pick<User, 'id' | 'pseudo'>, up: number, down: number, mine: number, voters?: Voters) {
   const items = JSON.parse(row.items) as Layout;
   const ev = rooms[row.roomId]?.evaluate(items);
   return {
     id: row.id, roomId: row.roomId, name: row.name, items, initial: JSON.parse(row.initial) as Layout,
     notes: row.notes ? JSON.parse(row.notes) : null, parentId: row.parentId, position: row.position, version: row.version,
     owner, createdAt: row.createdAt, updatedAt: row.updatedAt,
-    votes: { up, down, mine },
+    votes: voters ? { up, down, mine, voters } : { up, down, mine },
     ok: ev?.ok ?? false, score: ev?.score ?? 0,
   };
 }
 
-async function loadOne(id: number, userId: number) {
+async function loadOne(id: number, user: User) {
+  const userId = user.id;
   const row = await db.select({
     l: schema.layouts, ownerPseudo: schema.users.pseudo,
     up: sql<number>`coalesce((select count(*) from votes v where v.layout_id = ${schema.layouts.id} and v.value = 1), 0)`,
@@ -48,7 +66,9 @@ async function loadOne(id: number, userId: number) {
     mine: sql<number>`coalesce((select value from votes v where v.layout_id = ${schema.layouts.id} and v.user_id = ${userId}), 0)`,
   }).from(schema.layouts).innerJoin(schema.users, eq(schema.layouts.ownerId, schema.users.id))
     .where(and(eq(schema.layouts.id, id), isNull(schema.layouts.deletedAt))).get();
-  return row ? toDto(row.l, { id: row.l.ownerId, pseudo: row.ownerPseudo }, row.up, row.down, row.mine) : null;
+  if (!row) return null;
+  const voters = user.role === 'admin' ? (await votersFor([id])).get(id) ?? { up: [], down: [] } : undefined;
+  return toDto(row.l, { id: row.l.ownerId, pseudo: row.ownerPseudo }, row.up, row.down, row.mine, voters);
 }
 
 export const layoutRoutes = new Hono<AuthEnv>()
@@ -66,7 +86,8 @@ export const layoutRoutes = new Hono<AuthEnv>()
     }).from(schema.layouts).innerJoin(schema.users, eq(schema.layouts.ownerId, schema.users.id))
       .where(and(eq(schema.layouts.roomId, roomId), isNull(schema.layouts.deletedAt)))
       .orderBy(asc(schema.layouts.position), asc(schema.layouts.id));
-    return c.json({ layouts: rows.map((r) => toDto(r.l, { id: r.l.ownerId, pseudo: r.ownerPseudo }, r.up, r.down, r.mine)) });
+    const voters = c.get('user').role === 'admin' ? await votersFor(rows.map((r) => r.l.id)) : null;
+    return c.json({ layouts: rows.map((r) => toDto(r.l, { id: r.l.ownerId, pseudo: r.ownerPseudo }, r.up, r.down, r.mine, voters ? voters.get(r.l.id) ?? { up: [], down: [] } : undefined)) });
   })
   // Nouvelle disposition (vide, depuis le solveur ou copie d'une autre).
   .post('/rooms/:roomId/layouts', async (c) => {
@@ -81,7 +102,7 @@ export const layoutRoutes = new Hono<AuthEnv>()
     const [row] = await db.insert(schema.layouts).values({
       roomId, ownerId: c.get('user').id, name, items: json, initial: json, parentId, position: (max?.p ?? 0) + 1,
     }).returning();
-    return c.json({ layout: await loadOne(row.id, c.get('user').id) }, 201);
+    return c.json({ layout: await loadOne(row.id, c.get('user')) }, 201);
   })
   // Modification : seulement par l'auteur, et seulement si personne n'a enregistré entre-temps.
   .patch('/layouts/:id', async (c) => {
@@ -90,12 +111,12 @@ export const layoutRoutes = new Hono<AuthEnv>()
     const row = await db.select().from(schema.layouts).where(and(eq(schema.layouts.id, id), isNull(schema.layouts.deletedAt))).get();
     if (!row) return c.json({ error: 'Disposition introuvable.' }, 404);
     if (row.ownerId !== c.get('user').id) return c.json({ error: 'Tu ne peux modifier que tes propres dispositions. Duplique-la pour la modifier.' }, 403);
-    if (body.version !== row.version) return c.json({ error: 'Cette disposition a été modifiée ailleurs entre-temps.', layout: await loadOne(id, c.get('user').id) }, 409);
+    if (body.version !== row.version) return c.json({ error: 'Cette disposition a été modifiée ailleurs entre-temps.', layout: await loadOne(id, c.get('user')) }, 409);
     const patch: Partial<LayoutRow> = { version: row.version + 1, updatedAt: Date.now() };
     if (body.name !== undefined) { const n = parseName(body.name); if (!n) return c.json({ error: 'Nom invalide.' }, 400); patch.name = n; }
     if (body.items !== undefined) { const it = parseItems(body.items); if (!it) return c.json({ error: 'Meubles invalides.' }, 400); patch.items = JSON.stringify(it); }
     await db.update(schema.layouts).set(patch).where(eq(schema.layouts.id, id));
-    return c.json({ layout: await loadOne(id, c.get('user').id) });
+    return c.json({ layout: await loadOne(id, c.get('user')) });
   })
   .delete('/layouts/:id', async (c) => {
     const id = Number(c.req.param('id')), user = c.get('user');
@@ -115,5 +136,5 @@ export const layoutRoutes = new Hono<AuthEnv>()
     if (value === 0) await db.delete(schema.votes).where(and(eq(schema.votes.userId, userId), eq(schema.votes.layoutId, id)));
     else await db.insert(schema.votes).values({ userId, layoutId: id, value })
       .onConflictDoUpdate({ target: [schema.votes.userId, schema.votes.layoutId], set: { value, createdAt: Date.now() } });
-    return c.json({ layout: await loadOne(id, userId) });
+    return c.json({ layout: await loadOne(id, c.get('user')) });
   });
