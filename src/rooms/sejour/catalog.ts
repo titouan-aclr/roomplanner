@@ -25,5 +25,7 @@ export const catalog: Record<string, FurnitureType> = {
     label: 'Piano', color: 'piano', render: 'piano', w: 135, d: 32, h: 90,
     front: { comfort: 65, min: 50, what: 'pour le banc' },
   },
+  /** Banquette contre un mur : sert d'assise à la table sans le recul qu'il faut derrière une chaise. */
+  bench: { label: 'Banquette', color: 'sofa', render: 'box', w: 120, d: 45, h: 45 },
   custom: { label: 'Meuble', color: 'extra', render: 'box', w: 60, d: 40, h: 80, multiple: true },
 };

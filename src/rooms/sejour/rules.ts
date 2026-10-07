@@ -94,7 +94,11 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
     const sides: Side[] = [];
     const tight: string[] = [];
     const depths: { depth: number; ok: boolean }[] = [];
+    // une banquette collée à un côté de la table sert d'assise : pas besoin de recul derrière
+    const benches = c.byType('bench').map(fp);
+    const benchSides: Side[] = [];
     for (const side of ['top', 'bottom', 'left', 'right'] as Side[]) {
+      if (benches.some((b) => overlap(b, seatStrip(f, side, 15)))) { benchSides.push(side); depths.push({ depth: 0, ok: false }); continue; }
       const d = geo.freeDepth((x) => seatStrip(f, side, x), SEAT.comfort, blockers).depth;
       const ok = d >= SEAT.min && c.circ.reaches(seatStrip(f, side, Math.min(d, 60)));
       depths.push({ depth: d, ok });
@@ -105,10 +109,11 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
     c.seats[t.id] = sides.slice(0, wanted);
     // profondeur libre derrière chaque côté (haut, bas, gauche, droite), pour dessiner les dégagements
     c.sideDepths[t.id] = depths;
-    const n = Math.min(sides.length, wanted);
-    // 2 chaises suffisent ; une 3e ou une 4e est un petit plus
-    if (sides.length < 2) c.err(t.id, `${t.label} : place pour ${sides.length} chaise${sides.length > 1 ? 's' : ''} seulement, il en faut au moins 2 (${SEAT.min} cm minimum derrière chaque chaise, ${SEAT.comfort} pour être à l'aise).`);
-    else c.info(t.id, `${t.label} : ${n} chaises${n < wanted ? ` (${wanted} souhaitées)` : ''}.`);
+    const n = Math.min(sides.length + benchSides.length, wanted), total = sides.length + benchSides.length;
+    const onBench = benchSides.length ? ` dont ${benchSides.length} sur la banquette` : '';
+    // 2 places suffisent ; une 3e ou une 4e est un petit plus
+    if (total < 2) c.err(t.id, `${t.label} : place pour ${total} personne${total > 1 ? 's' : ''} seulement, il en faut au moins 2 (${SEAT.min} cm minimum derrière chaque chaise, ${SEAT.comfort} pour être à l'aise).`);
+    else c.info(t.id, `${t.label} : ${n} places${onBench}${n < wanted ? ` (${wanted} souhaitées)` : ''}.`);
     if (tight.length) c.warn(t.id, `${t.label} : chaises un peu à l'étroit (${tight.join(', ')} ; confort ${SEAT.comfort}).`);
     c.score += Math.max(0, n - 2) * 2 - tight.length;
   }
