@@ -341,7 +341,8 @@ export class App {
     const box = $('#layoutList', this.root);
     if (!box) return;
     this.root.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === this.filter)));
-    const list = this.layouts.filter((l) => this.filter === 'all' || l.owner.id === this.me.id);
+    const list = this.layouts.filter((l) => this.filter === 'all' || l.owner.id === this.me.id)
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr', { numeric: true, sensitivity: 'base' }) || a.id - b.id);
     box.innerHTML = list.length ? list.map((l) => {
       const mine = l.owner.id === this.me.id, net = l.votes.up - l.votes.down;
       return `<button class="layout-item" type="button" role="listitem" data-id="${l.id}" aria-current="${l.id === this.activeId}">

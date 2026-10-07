@@ -87,6 +87,8 @@ export const layoutRoutes = new Hono<AuthEnv>()
     }).from(schema.layouts).innerJoin(schema.users, eq(schema.layouts.ownerId, schema.users.id))
       .where(and(eq(schema.layouts.roomId, roomId), isNull(schema.layouts.deletedAt)))
       .orderBy(asc(schema.layouts.position), asc(schema.layouts.id));
+    // toujours dans l'ordre alphabétique des noms (« A · … », « B · … », « 10 » après « 9 »)
+    rows.sort((a, b) => a.l.name.localeCompare(b.l.name, 'fr', { numeric: true, sensitivity: 'base' }) || a.l.id - b.l.id);
     const voters = c.get('user').role === 'admin' ? await votersFor(rows.map((r) => r.l.id)) : null;
     return c.json({ layouts: rows.map((r) => toDto(r.l, { id: r.l.ownerId, pseudo: r.ownerPseudo }, r.up, r.down, r.mine, voters ? voters.get(r.l.id) ?? { up: [], down: [] } : undefined)) });
   })
