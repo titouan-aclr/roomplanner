@@ -6,7 +6,7 @@ import { families, makeClash, type RoomGeo } from '../../shared/core';
 import { footprint } from '../../shared/geometry';
 import type { Evaluation, Layout, PlacedItem, SolveOptions, SolveResult } from '../../shared/types';
 import { catalog } from './catalog';
-import { allowedInFront, evaluateSejour } from './rules';
+import { allowedInFront, evaluateSejour, looksAt } from './rules';
 
 type Scored = { layout: Layout; ev: Evaluation };
 const BEAM = 120;
@@ -14,7 +14,9 @@ const BEAM = 120;
 const FREE_STEP = 10;
 const uniq = (xs: number[]) => [...new Set(xs)];
 const LAT: Record<string, [number, number]> = { S: [1, 0], N: [1, 0], E: [0, 1], W: [0, 1] };
-const ARROW: Record<string, string> = { S: '↓', N: '↑', E: '→', W: '←' };
+const BACK: Record<string, [number, number]> = { S: [0, -1], N: [0, 1], E: [-1, 0], W: [1, 0] };
+/** Un meuble « au milieu » doit l'être vraiment : décollé du mur de quelques centimètres, il n'apporte rien. */
+const MIN_OFF_WALL = 40;
 
 export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {}): SolveResult {
   const t0 = Date.now();
@@ -48,7 +50,15 @@ export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {})
   /** Contre un mur, ou au milieu de la pièce (éventuellement un côté contre un mur), dans les 4 orientations. */
   const anywhere = (t: PlacedItem, sz: { w: number; d: number }[], freeStep: number) => {
     const out = new Map<string, PlacedItem>();
-    const add = (m: PlacedItem) => { if (usable(m)) out.set(`${m.face}|${m.x}|${m.y}|${m.w}|${m.d}`, m); };
+    const add = (m: PlacedItem) => {
+      if (!usable(m)) return;
+      const back = geo.push(m, BACK[m.face]);
+      if (back.hit && !geo.backOnWall(m) && geo.backOnWall(back.pos)) {
+        const off = Math.abs(back.pos.x - m.x) + Math.abs(back.pos.y - m.y);
+        if (off > 0 && off < MIN_OFF_WALL) return;
+      }
+      out.set(`${m.face}|${m.x}|${m.y}|${m.w}|${m.d}`, m);
+    };
     for (const m of geo.wallCandidates(t, sz, { step })) add(m);
     for (const { w, d } of sz) for (const face of ['S', 'N', 'E', 'W'] as const)
       for (let x = 0; x <= geo.maxX; x += freeStep) for (let y = 0; y <= geo.maxY; y += freeStep) {
@@ -95,12 +105,12 @@ export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {})
     return prune(next);
   };
 
-  // 1. Canapé : partout, une seule position par orientation, largeur et case de 30 cm
+  // 1. Canapé : partout, toutes les positions possibles
   let beam: Scored[] = [{ layout: [], ev: evaluateSejour(geo, []) }];
   if (visible('sofa')) {
     const st = tpl('sofa');
     const sofas = anywhere(st, sizes('sofa', st), FREE_STEP).map((s) => score([s])).filter((r): r is Scored => !!r);
-    beam = prune(sofas, (l) => `${l[0].face}${l[0].w}|${Math.round(l[0].x / 30)}|${Math.round(l[0].y / 30)}`, 200, 1);
+    beam = prune(sofas, (l) => `${l[0].face}${l[0].w}|${l[0].x}|${l[0].y}`, 600, 1);
   }
 
   // 2. Table ronde, puis affinée à 5 cm près
@@ -121,7 +131,8 @@ export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {})
       if (r) refined.push(r);
     }
   }
-  beam = prune(refined, concept, BEAM, 1);
+  // on garde chaque position du canapé : 20 cm de plus ou de moins peuvent laisser la place au fauteuil
+  beam = prune(refined, (l) => { const s = get(l, 'sofa'); return `${concept(l)}|${s?.x}|${s?.y}`; }, 400, 1);
 
   // 3. Fauteuil : contre un mur ou au milieu, dans n'importe quelle orientation
   if (visible('armchair')) {
@@ -132,18 +143,22 @@ export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {})
   // 4. Piano (optionnel), contre un mur ou adossé à un meuble
   if (visible('piano')) {
     const pt = tpl('piano');
-    const wall = geo.wallCandidates(pt, sizes('piano', pt), { step }).filter(usable);
-    beam = expand(beam, (l) => wall.concat(geo.backToCandidates(pt, l, step).filter(usable)), true);
+    const walls = geo.wallCandidates(pt, sizes('piano', pt), { step }).filter(usable);
+    beam = expand(beam, (l) => walls.concat(geo.backToCandidates(pt, l, step).filter(usable)), true);
   }
 
-  const where = (it: PlacedItem) => (geo.backOnWall(it) ? `mur ${geo.wallName(it)}` : `au milieu ${ARROW[it.face]}`);
+  const wall = (it: PlacedItem) => (geo.backOnWall(it) ? `mur ${geo.wallName(it)}` : 'au milieu');
+  const where = (it: PlacedItem) => {
+    const v = looksAt(geo, it);
+    return `${wall(it)}, vers ${v !== 'mur' ? `la ${v}` : it.type === 'armchair' ? 'le canapé' : 'le mur'}`;
+  };
   const describe = (l: Layout) => {
     const sofa = get(l, 'sofa'), arm = get(l, 'armchair'), piano = get(l, 'piano');
     const chairs = (evaluateSejour(geo, l).seats?.table ?? []).length;
     return [
       sofa ? `canapé ${sofa.w} ${where(sofa)}` : 'sans canapé',
       arm ? `fauteuil ${where(arm)}` : '',
-      piano ? `piano ${where(piano)}` : '',
+      piano ? `piano ${wall(piano)}` : '',
       `${chairs} chaises`,
     ].filter(Boolean).join(' · ');
   };
