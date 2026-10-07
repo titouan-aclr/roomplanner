@@ -66,7 +66,8 @@ export class ExplorerPage {
             <h1>Explorer</h1>
             <p class="muted">Le solveur essaie toutes les positions contre les murs (pas de 10 cm, 4 orientations) pour les meubles choisis, avec chaque largeur et profondeur indiquée, et garde la meilleure disposition de chaque famille. Plus il y a de tailles à essayer, plus la recherche est longue.</p>
           </div>
-          <div class="explore-grid">
+          ${types.length ? '' : `<div class="sheet card"><p class="muted">Le solveur de cette pièce n'est pas encore configuré : ses meubles et ses règles d'aménagement restent à définir.</p></div>`}
+          <div class="explore-grid"${types.length ? '' : ' hidden'}>
             <form class="sheet card params" id="params">
               <h2>Paramètres</h2>
               <label class="field">Partir des meubles de<select id="fromLayout"><option value="">Valeurs par défaut</option></select></label>

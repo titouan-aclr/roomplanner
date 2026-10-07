@@ -402,6 +402,7 @@ export class App {
     const errs = ev.issues.filter((i) => i.sev === 'error'), list = errs.concat(ev.issues.filter((i) => i.sev !== 'error'));
     const get = (t: string) => this.items().find((i) => i.type === t && !i.hidden);
     const wardrobe = get('wardrobe'), desk = get('desk'), bed = get('bed');
+    const has = (t: string) => !!this.room.catalog[t];
     const unchanged = samePlace(cur.items, cur.initial);
     // Administrateur : qui a voté, en infobulle sur chaque pouce.
     const voters = cur.votes.voters;
@@ -421,9 +422,9 @@ export class App {
       ${voters && (voters.up.length || voters.down.length) ? `<p class="voters muted">${voters.up.length ? `👍 ${esc(voters.up.join(', '))}` : ''}${voters.up.length && voters.down.length ? ' · ' : ''}${voters.down.length ? `👎 ${esc(voters.down.join(', '))}` : ''}</p>` : ''}
       <dl class="stats">
         <div><dt>Circulation libre</dt><dd>${fmtM2(ev.freeM2)}</dd></div>
-        <div><dt>Accès au lit</dt><dd>${bed ? (ev.bedSides === 2 ? '2 côtés' : ev.bedSides === 1 ? '1 côté' : ev.bedFoot ? 'par le pied' : 'aucun') : '–'}</dd></div>
-        <div><dt>Armoire</dt><dd>${wardrobe ? `${wardrobe.w} cm` : '–'}</dd></div>
-        <div><dt>Bureau</dt><dd>${desk ? `${desk.w} × ${desk.d}` : '–'}</dd></div>
+        ${has('bed') ? `<div><dt>Accès au lit</dt><dd>${bed ? (ev.bedSides === 2 ? '2 côtés' : ev.bedSides === 1 ? '1 côté' : ev.bedFoot ? 'par le pied' : 'aucun') : '–'}</dd></div>` : ''}
+        ${has('wardrobe') ? `<div><dt>Armoire</dt><dd>${wardrobe ? `${wardrobe.w} cm` : '–'}</dd></div>` : ''}
+        ${has('desk') ? `<div><dt>Bureau</dt><dd>${desk ? `${desk.w} × ${desk.d}` : '–'}</dd></div>` : ''}
       </dl>
       ${list.length ? `<ul class="issues">${list.map((i) => `<li class="${i.sev}">${esc(i.msg)}</li>`).join('')}</ul>` : '<p class="muted">Aucun point de vigilance.</p>'}
       ${cur.notes && unchanged ? `<div class="procon"><div class="pro"><h3>Points forts</h3><ul>${cur.notes.pros.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div><div class="con"><h3>Limites</h3><ul>${cur.notes.cons.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></div></div>` : ''}

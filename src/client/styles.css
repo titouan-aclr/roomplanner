@@ -362,3 +362,6 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
   .vote[data-tip]::after { display: none; }
   .voters { display: block; }
 }
+
+/* éléments fixes de cuisine */
+.s-unit { fill: var(--sheet); stroke: var(--muted); stroke-width: 1; }
