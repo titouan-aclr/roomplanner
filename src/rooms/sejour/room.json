@@ -23,6 +23,19 @@
       ]
     },
     {
+      "id": "radiator",
+      "label": "Radiateur",
+      "labelDef": "le radiateur",
+      "kind": "obstacle",
+      "rect": { "x": 348, "y": 12, "w": 12, "h": 50 },
+      "height": 60,
+      "draw": [
+        { "kind": "rect", "class": "s-rad", "x": 348, "y": 12, "w": 12, "h": 50 },
+        { "kind": "fins", "x": 349, "y": 17, "w": 10, "h": 45, "step": 5 },
+        { "kind": "text", "class": "s-note", "x": 346, "y": 90, "text": "radiateur", "anchor": "end" }
+      ]
+    },
+    {
       "id": "kitchen",
       "label": "Cuisine",
       "labelDef": "la cuisine",
