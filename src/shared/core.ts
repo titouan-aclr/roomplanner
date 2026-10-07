@@ -347,6 +347,7 @@ export class Checker {
       }
       for (const z of geo.data.zones) {
         if (!this.hits(it.id, z.rect)) continue;
+        if (z.clearBelow && (it.h ?? spec.h ?? Infinity) < z.clearBelow) continue;
         if (z.group) { blockedParts.set(z.id, [...(blockedParts.get(z.id) ?? []), it]); continue; }
         this.err(it.id, z.message.replace('{item}', it.label));
       }

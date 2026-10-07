@@ -100,9 +100,9 @@
     }
   ],
   "zones": [
-    { "id": "windowLeafTop", "kind": "keepFree", "group": "window", "groupLabel": "la fenêtre", "label": "Battant haut de la fenêtre", "rect": { "x": 304, "y": 130, "w": 56, "h": 55.5 },
+    { "id": "windowLeafTop", "kind": "keepFree", "group": "window", "groupLabel": "la fenêtre", "clearBelow": 30, "label": "Battant haut de la fenêtre", "rect": { "x": 304, "y": 130, "w": 56, "h": 55.5 },
       "message": "{item} bloque le battant du haut de la fenêtre (l'autre s'ouvre).", "frontWarning": "{what} est dans le débattement d'un battant de la fenêtre." },
-    { "id": "windowLeafBottom", "kind": "keepFree", "group": "window", "groupLabel": "la fenêtre", "label": "Battant bas de la fenêtre", "rect": { "x": 304, "y": 185.5, "w": 56, "h": 55.5 },
+    { "id": "windowLeafBottom", "kind": "keepFree", "group": "window", "groupLabel": "la fenêtre", "clearBelow": 30, "label": "Battant bas de la fenêtre", "rect": { "x": 304, "y": 185.5, "w": 56, "h": 55.5 },
       "message": "{item} bloque le battant du bas de la fenêtre (l'autre s'ouvre).", "frontWarning": "{what} est dans le débattement d'un battant de la fenêtre." },
     { "id": "doorBedroomSwing", "kind": "keepFree", "label": "Ouverture porte de la chambre", "rect": { "x": 266, "y": 0, "w": 75, "h": 75 },
       "message": "{item} empêche d'ouvrir la porte de la chambre.", "frontWarning": "{what} est dans le débattement de la porte de la chambre." },

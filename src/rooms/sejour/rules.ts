@@ -81,7 +81,10 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
   c.entriesConnected();
   c.zoneReachable('kitchenWork', 'On ne peut plus accéder à la cuisine depuis les portes.');
   const leaves = geo.data.zones.filter((z) => z.group === 'window');
-  if (leaves.length && !leaves.some((z) => c.circ.reaches(z.rect))) c.err(null, 'On ne peut plus atteindre la fenêtre pour l’ouvrir.');
+  // un meuble bas (sous l'allège) devant la fenêtre ne l'empêche pas d'être ouverte : on se penche au-dessus
+  const low = c.items.filter((it) => leaves.some((z) => z.clearBelow && (it.h ?? catalog[it.type]?.h ?? Infinity) < z.clearBelow && c.parts.get(it.id)!.some((p) => overlap(p, z.rect))));
+  const nearLow = low.flatMap((it) => c.parts.get(it.id)!.map((p) => ({ x: p.x - 30, y: p.y - 30, w: p.w + 60, h: p.h + 60 })));
+  if (leaves.length && !leaves.some((z) => c.circ.reaches(z.rect)) && !nearLow.some((r) => c.circ.reaches(r))) c.err(null, 'On ne peut plus atteindre la fenêtre pour l’ouvrir.');
 
   const fp = (it: PlacedItem) => c.fp.get(it.id)!;
   const sofa = c.byType('sofa')[0], coffee = c.byType('coffee')[0], armchair = c.byType('armchair')[0];

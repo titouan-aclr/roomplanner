@@ -60,6 +60,8 @@ export interface Zone {
    * (avertissement), jamais toutes à la fois.
    */
   group?: string;
+  /** Hauteur sous laquelle un meuble ne gêne pas (battants d'une fenêtre qui s'ouvrent au-dessus de l'allège). */
+  clearBelow?: number;
   /** Nom du groupe pour les messages (« la fenêtre »). */
   groupLabel?: string;
   label: string;
