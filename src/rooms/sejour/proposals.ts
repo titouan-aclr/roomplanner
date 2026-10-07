@@ -12,13 +12,13 @@ export const proposals: Proposal[] = [
     key: 'A', name: 'Fauteuil face à la cheminée, table près de la fenêtre',
     pros: ['Canapé sur le mur de gauche et fauteuil au milieu, tourné vers la cheminée : un vrai coin salon.', 'Coin repas près de la fenêtre.'],
     cons: ['La table cache le battant du haut de la fenêtre.', 'Place pour 2 chaises.'],
-    layout: [T(290, 77), P('sofa', 'E', 2, 48, 200, 95), P('lamp', 'S', 5, 250, 30, 30), P('armchair', 'N', 176, 150, 63, 75), P('coffee', 'S', 153, 61, 30, 30)],
+    layout: [T(290, 77), P('sofa', 'E', 2, 31, 200, 95), P('lamp', 'S', 4, 237, 30, 30), P('armchair', 'N', 176, 150, 63, 75), P('coffee', 'S', 153, 61, 30, 30)],
   },
   {
     key: 'B', name: 'Canapé au mur, fauteuil près de la fenêtre',
     pros: ['Canapé-lit de 200 sur le mur de gauche, fauteuil près de la fenêtre tourné vers lui, lampadaire au bout du canapé.', 'Table d’appoint près de la cheminée, devant le canapé.', 'Place pour 3 chaises autour de la table.'],
     cons: ['Le fauteuil cache le battant du haut de la fenêtre (celui du bas s’ouvre).'],
-    layout: [T(190, 150), P('sofa', 'E', 2, 50, 200, 95), P('lamp', 'S', 2, 252, 30, 30), P('armchair', 'W', 285, 80, 63, 75), P('coffee', 'S', 160, 56, 30, 30)],
+    layout: [T(190, 150), P('sofa', 'E', 2, 31, 200, 95), P('lamp', 'S', 2, 235, 30, 30), P('armchair', 'W', 285, 80, 63, 75), P('coffee', 'S', 160, 56, 30, 30)],
   },
   {
     key: 'C', name: 'Canapé face à la cheminée, table près de la fenêtre',
