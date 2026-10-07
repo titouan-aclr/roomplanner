@@ -20,14 +20,15 @@ export type NotchMode = { fixed: FixedElement; mode: 'back' | 'side' };
 // =====================================================================
 export class RoomGeo {
   readonly hard: FixedElement[];
-  readonly entry: Zone | undefined;
+  /** Zones d'entrée (une par porte) : la circulation part de chacune. */
+  readonly entries: Zone[];
   readonly sconces: FixedElement[];
   readonly maxX: number;
   readonly maxY: number;
 
   constructor(readonly data: RoomData) {
     this.hard = data.fixed.filter((f) => f.kind === 'obstacle' && f.rect);
-    this.entry = data.zones.find((z) => z.kind === 'entry');
+    this.entries = data.zones.filter((z) => z.kind === 'entry');
     this.sconces = data.fixed.filter((f) => f.kind === 'sconce');
     this.maxX = Math.max(...data.polygon.map((p) => p[0]));
     this.maxY = Math.max(...data.polygon.map((p) => p[1]));
@@ -166,10 +167,9 @@ export class RoomGeo {
     const pass = (k: number) => dist[k] >= PASSAGE_RADIUS;
     const reach = new Uint8Array(W * H);
     const queue: number[] = [];
-    const door = this.entry?.rect;
-    if (door) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    for (const { rect: door } of this.entries) for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
       const cx = i * CELL + CELL / 2, cy = j * CELL + CELL / 2, k = j * W + i;
-      if (cx > door.x + 15 && cx < door.x + door.w - 15 && cy > door.y && cy < door.y + door.h && pass(k)) { reach[k] = 1; queue.push(k); }
+      if (!reach[k] && cx > door.x + 15 && cx < door.x + door.w - 15 && cy > door.y && cy < door.y + door.h && pass(k)) { reach[k] = 1; queue.push(k); }
     }
     while (queue.length) {
       const k = queue.pop()!, i = k % W, j = (k - i) / W;
