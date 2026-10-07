@@ -70,7 +70,7 @@
         { "kind": "gap", "x": 351, "y": 84, "w": 12, "h": 125 },
         { "kind": "line", "x1": 354, "y1": 84, "x2": 354, "y2": 209 },
         { "kind": "line", "x1": 359, "y1": 84, "x2": 359, "y2": 209 },
-        { "kind": "path", "class": "s-swing", "d": "M354 146.5 A62.5 62.5 0 0 0 291.5 84 M354 146.5 A62.5 62.5 0 0 1 291.5 209 M354 84 H291.5 M354 209 H291.5" },
+        { "kind": "path", "class": "s-swing", "d": "M354 146.5 A62.5 62.5 0 0 1 291.5 84 M354 146.5 A62.5 62.5 0 0 0 291.5 209 M354 84 H291.5 M354 209 H291.5" },
         { "kind": "text", "class": "s-note", "x": 322, "y": 149, "text": "fenêtre 125", "anchor": "middle" },
         { "kind": "text", "class": "s-note", "x": 322, "y": 158, "text": "allège 30 cm", "anchor": "middle" }
       ]
