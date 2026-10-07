@@ -158,7 +158,7 @@ export class ExplorerPage {
     box.innerHTML = this.results.map((f, i) => `
       <button class="result" type="button" data-i="${i}" aria-pressed="${this.chosen === i}">
         ${thumbnail(this.room, f.layout)}
-        <span class="t"><b>${esc(f.summary)}</b><span class="muted">circulation ${fmtM2(f.freeM2)} · lit ${f.bedSides ? `${f.bedSides} côté(s)` : 'par le pied'} · note ${f.score}</span></span>
+        <span class="t"><b>${esc(f.summary)}</b><span class="muted">circulation ${fmtM2(f.freeM2)}${this.room.catalog.bed ? ` · lit ${f.bedSides ? `${f.bedSides} côté(s)` : 'par le pied'}` : ''} · note ${f.score}</span></span>
       </button>`).join('');
     box.querySelectorAll<HTMLButtonElement>('[data-i]').forEach((b) => b.addEventListener('click', () => this.choose(Number(b.dataset.i))));
   }

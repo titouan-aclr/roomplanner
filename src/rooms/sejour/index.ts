@@ -18,13 +18,11 @@ export const sejour: RoomModule = {
   proposals,
   explore: {
     required: ['table', 'sofa'],
-    optional: ['lamp', 'armchair', 'coffee', 'piano'],
+    optional: ['armchair', 'piano'],
     sizes: {
       table: { widths: [70], depths: [70] },
       sofa: { widths: [200, 230], depths: [95] },
-      lamp: { widths: [30], depths: [30] },
       armchair: { widths: [63], depths: [75] },
-      coffee: { widths: [30, 45], depths: [30, 45] },
       piano: { widths: [135], depths: [32] },
     },
   },

@@ -194,7 +194,7 @@ export class RoomGeo {
   }
 
   // ---------- Génération de positions ----------
-  private push(p: PlacedItem, dir: Point, ignore: string[] = []): { pos: PlacedItem; hit: boolean } {
+  push(p: PlacedItem, dir: Point, ignore: string[] = []): { pos: PlacedItem; hit: boolean } {
     let cur = p;
     for (let i = 0; i < 400; i++) {
       const next = { ...cur, x: cur.x + dir[0], y: cur.y + dir[1] };

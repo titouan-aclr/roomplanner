@@ -5,7 +5,7 @@ import type { Layout, SolveOptions } from '../shared/types';
 self.onmessage = (e: MessageEvent<{ roomId: string; base: Layout; allowNotch: boolean; sizes?: SolveOptions['sizes'] }>) => {
   const { roomId, base, allowNotch, sizes } = e.data;
   try {
-    self.postMessage({ ok: true, result: rooms[roomId].solve(base, { allowNotch, sizes, limit: 12 }) });
+    self.postMessage({ ok: true, result: rooms[roomId].solve(base, { allowNotch, sizes, limit: 20 }) });
   } catch (err) {
     self.postMessage({ ok: false, error: String(err) });
   }
