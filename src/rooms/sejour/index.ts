@@ -1,31 +1,31 @@
-// Séjour : la géométrie est en place ; les meubles, leurs règles et la stratégie du solveur viendront ensuite.
-import { Checker, RoomGeo } from '../../shared/core';
-import type { FurnitureType, Layout, RoomData, RoomModule } from '../../shared/types';
+import { RoomGeo } from '../../shared/core';
+import type { RoomData, RoomModule } from '../../shared/types';
+import { catalog } from './catalog';
+import { proposals } from './proposals';
 import data from './room.json';
+import { evaluateSejour } from './rules';
+import { solveSejour } from './solver';
 
 const room = data as unknown as RoomData;
 const geo = new RoomGeo(room);
 
-const catalog: Record<string, FurnitureType> = {
-  custom: { label: 'Meuble', color: 'extra', render: 'box', w: 60, d: 40, h: 80, multiple: true },
-};
-
-/** Vérifications communes seulement : murs, obstacles, zones libres, chevauchements, espaces devant, circulation. */
-function evaluateSejour(layout: Layout) {
-  const c = new Checker(geo, catalog, layout);
-  c.placement();
-  c.overlaps();
-  c.frontClearances();
-  c.reachability();
-  return c.result(6);
-}
-
 export const sejour: RoomModule = {
   data: room,
   catalog,
-  starter: [],
-  evaluate: evaluateSejour,
-  solve: () => ({ families: [], evaluated: 0, valid: 0, ms: 0 }),
-  proposals: [],
-  explore: { required: [], optional: [], sizes: {} },
+  starter: proposals[0]?.layout ?? [],
+  evaluate: (layout) => evaluateSejour(geo, layout),
+  solve: (base, opts) => solveSejour(geo, base, opts),
+  proposals,
+  explore: {
+    required: ['table', 'sofa'],
+    optional: ['lamp', 'armchair', 'coffee', 'piano'],
+    sizes: {
+      table: { widths: [70], depths: [70] },
+      sofa: { widths: [150, 190, 230], depths: [95] },
+      lamp: { widths: [30], depths: [30] },
+      armchair: { widths: [63], depths: [75] },
+      coffee: { widths: [30, 45], depths: [30, 45] },
+      piano: { widths: [135], depths: [32] },
+    },
+  },
 };
