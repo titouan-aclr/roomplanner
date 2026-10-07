@@ -12,7 +12,8 @@ export interface LayoutDto {
   position: number;
   version: number;
   owner: { id: number; pseudo: string };
-  votes: { up: number; down: number; mine: number };
+  /** `voters` n'est renvoyé qu'à l'administrateur. */
+  votes: { up: number; down: number; mine: number; voters?: { up: string[]; down: string[] } };
   ok: boolean;
   score: number;
 }

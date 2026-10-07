@@ -345,3 +345,20 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/* ---------- Infobulle des votants (administrateur) ---------- */
+.vote[data-tip] { position: relative; }
+.vote[data-tip]:hover::after, .vote[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 6;
+  min-width: 120px; max-width: 220px; width: max-content;
+  padding: 6px 10px; border-radius: 4px; text-align: left;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--f-body); font-size: .8rem; line-height: 1.4; white-space: pre-line;
+  pointer-events: none;
+}
+.voters { display: none; margin: 0; font-size: .82rem; }
+@media (hover: none) {
+  .vote[data-tip]::after { display: none; }
+  .voters { display: block; }
+}

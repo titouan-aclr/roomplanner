@@ -403,14 +403,22 @@ export class App {
     const get = (t: string) => this.items().find((i) => i.type === t && !i.hidden);
     const wardrobe = get('wardrobe'), desk = get('desk'), bed = get('bed');
     const unchanged = samePlace(cur.items, cur.initial);
+    // Administrateur : qui a voté, en infobulle sur chaque pouce.
+    const voters = cur.votes.voters;
+    const tip = (names: string[] | undefined, title: string) => {
+      if (!voters) return '';
+      const text = names?.length ? `${title} :\n${names.join('\n')}` : 'Aucun vote';
+      return ` data-tip="${esc(text)}"`;
+    };
     card.innerHTML = `
       <div class="verdict">
         <span class="chip ${errs.length ? 'bad' : ''}">${errs.length ? `${errs.length} problème${errs.length > 1 ? 's' : ''}` : 'Tout passe'}</span>
         <span class="votes">
-          <button class="vote up" type="button" data-vote="1" aria-pressed="${cur.votes.mine === 1}" aria-label="J'aime">${THUMB_UP}${cur.votes.up}</button>
-          <button class="vote down" type="button" data-vote="-1" aria-pressed="${cur.votes.mine === -1}" aria-label="Je n'aime pas">${THUMB_DOWN}${cur.votes.down}</button>
+          <button class="vote up" type="button" data-vote="1" aria-pressed="${cur.votes.mine === 1}" aria-label="J'aime"${tip(voters?.up, 'J’aiment')}>${THUMB_UP}${cur.votes.up}</button>
+          <button class="vote down" type="button" data-vote="-1" aria-pressed="${cur.votes.mine === -1}" aria-label="Je n'aime pas"${tip(voters?.down, 'N’aiment pas')}>${THUMB_DOWN}${cur.votes.down}</button>
         </span>
       </div>
+      ${voters && (voters.up.length || voters.down.length) ? `<p class="voters muted">${voters.up.length ? `👍 ${esc(voters.up.join(', '))}` : ''}${voters.up.length && voters.down.length ? ' · ' : ''}${voters.down.length ? `👎 ${esc(voters.down.join(', '))}` : ''}</p>` : ''}
       <dl class="stats">
         <div><dt>Circulation libre</dt><dd>${fmtM2(ev.freeM2)}</dd></div>
         <div><dt>Accès au lit</dt><dd>${bed ? (ev.bedSides === 2 ? '2 côtés' : ev.bedSides === 1 ? '1 côté' : ev.bedFoot ? 'par le pied' : 'aucun') : '–'}</dd></div>
