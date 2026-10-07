@@ -1,6 +1,6 @@
 // Plan SVG : pièce (données JSON), meubles, espaces devant, circulation, glisser-déposer.
 import { RoomGeo } from '../shared/core';
-import { footprint, frontRect, localRect, sideRects } from '../shared/geometry';
+import { footprint, frontRect, localRect, sideRects, untilted } from '../shared/geometry';
 import type { Evaluation, Layout, PlacedItem, Rect, RoomModule } from '../shared/types';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -97,8 +97,11 @@ export class PlanView {
           const min = Math.min(it.min ?? spec?.front?.min ?? comfort, comfort);
           const free = ev.frontDepth[it.id] ?? comfort;
           const state = free < min ? ' bad' : free < comfort ? ' warn' : '';
-          rect(g, geo.frontOf(it, comfort), 'clr' + state, { style: `--c:${c}` });
-          if (min < comfort) line(g, localRect(it, 0, it.d + min, it.w, 0.01), 'clr-min' + state, { style: `--c:${c}` });
+          // en biais : on dessine l'espace du meuble droit, puis on le tourne avec lui
+          const di = untilted(it), f0 = footprint(it);
+          const gc = it.tilt ? el('g', { transform: `rotate(45 ${f0.x + f0.w / 2} ${f0.y + f0.h / 2})` }, g) : g;
+          rect(gc, geo.frontOf(di, comfort, spec?.front?.inset), 'clr' + state, { style: `--c:${c}` });
+          if (min < comfort) line(gc, localRect(di, 0, di.d + min, di.w, 0.01), 'clr-min' + state, { style: `--c:${c}` });
           if (spec?.render === 'desk') {
             const ch = localRect(it, it.w / 2 - 30, it.d + 12, 60, 60);
             el('circle', { cx: ch.x + ch.w / 2, cy: ch.y + ch.h / 2, r: 28, class: 'chair', style: `--c:${c}` }, g);
@@ -138,7 +141,7 @@ export class PlanView {
       const round = spec?.render === 'roundTable' || spec?.render === 'lamp';
       // en biais : on dessine le meuble droit, centré dans son carré englobant, puis on le tourne de 45°
       const tcx = f.x + f.w / 2, tcy = f.y + f.h / 2;
-      const di: PlacedItem = it.tilt ? (() => { const u = footprint({ ...it, tilt: false }); return { ...it, tilt: false, x: tcx - u.w / 2, y: tcy - u.h / 2 }; })() : it;
+      const di = untilted(it);
       const gx = it.tilt ? el('g', { transform: `rotate(45 ${tcx} ${tcy})` }, gi) : gi;
       if (round) el('circle', { cx: tcx, cy: tcy, r: Math.min(f.w, f.h) / 2, class: 'fp' }, gi);
       else rect(gx, footprint(di), 'fp');

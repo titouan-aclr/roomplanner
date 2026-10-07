@@ -76,18 +76,36 @@ function bbox(pts: Point[]): Rect {
  * quelques bandes qui épousent le losange pour un meuble en biais (collisions et circulation).
  */
 export function parts(p: Box, n = 6): Rect[] {
-  if (!p.tilt) return [footprint(p)];
-  const poly = tiltCorners(p), f = footprint(p), out: Rect[] = [];
+  return p.tilt ? slicePoly(tiltCorners(p), n) : [footprint(p)];
+}
+
+/** Polygone convexe découpé en `n` bandes horizontales (rectangles qui l'épousent). */
+function slicePoly(poly: Point[], n: number): Rect[] {
+  const f = bbox(poly), out: Rect[] = [];
   for (let i = 0; i < n; i++) {
     const y0 = f.y + (f.h * i) / n, y1 = f.y + (f.h * (i + 1)) / n, xs: number[] = [];
-    for (let k = 0; k < 4; k++) {
-      const [ax, ay] = poly[k], [bx, by] = poly[(k + 1) % 4];
+    for (let k = 0; k < poly.length; k++) {
+      const [ax, ay] = poly[k], [bx, by] = poly[(k + 1) % poly.length];
       if (ay >= y0 && ay <= y1) xs.push(ax);
       for (const yy of [y0, y1]) if ((ay - yy) * (by - yy) < 0) xs.push(ax + ((yy - ay) / (by - ay)) * (bx - ax));
     }
     if (xs.length) out.push({ x: Math.min(...xs), y: y0, w: Math.max(...xs) - Math.min(...xs), h: y1 - y0 });
   }
   return out;
+}
+
+/** Espace devant le meuble, en morceaux : la bande tournée elle-même pour un meuble en biais. */
+export function frontParts(p: Box, depth: number, n = 6): Rect[] {
+  if (!p.tilt) return [frontRect(p, depth)];
+  const [ux, uy] = facing(p), [a, b] = tiltCorners(p);
+  return slicePoly([a, [a[0] + depth * ux, a[1] + depth * uy], [b[0] + depth * ux, b[1] + depth * uy], b], n);
+}
+
+/** Le même meuble, droit et centré au même endroit (pour dessiner un meuble en biais avant de le tourner). */
+export function untilted<T extends Box>(p: T): T {
+  if (!p.tilt) return p;
+  const f = footprint(p), u = footprint({ ...p, tilt: false });
+  return { ...p, tilt: false, x: f.x + f.w / 2 - u.w / 2, y: f.y + f.h / 2 - u.h / 2 };
 }
 
 export function frontRect(p: Box, depth: number): Rect {

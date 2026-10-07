@@ -1,7 +1,7 @@
 // Boîte à outils commune à toutes les pièces : géométrie, vérifications de base, génération de positions
 // et recherche. Les règles propres à une pièce (et sa note) vivent dans son module, src/rooms/<pièce>/.
 import {
-  BACK, BACK_SIDE, footprint, frontRect, intersection, LATERAL, overlap, overlapArea, parts, pointInPoly, rectInPoly, sideRects,
+  BACK, BACK_SIDE, footprint, frontParts, frontRect, intersection, LATERAL, overlap, overlapArea, parts, pointInPoly, rectInPoly, sideRects,
 } from './geometry';
 import type {
   Evaluation, FixedElement, FurnitureType, Issue, Layout, PlacedItem, Point, Rect, RoomData, Side, SolveFamily, Zone,
@@ -127,6 +127,20 @@ export class RoomGeo {
       const by = blockedBy(d);
       if (by) return { depth: d - 1, by };
     }
+    return { depth: max, by: null };
+  }
+
+  /** Comme `freeDepth`, pour un espace fait de plusieurs morceaux (devant un meuble en biais). */
+  freeDepthParts(zone: (d: number) => Rect[], max: number, blockers: Blocker[]): { depth: number; by: string | null } {
+    const blockedBy = (d: number): string | null => {
+      for (const s of zone(d)) {
+        if (!this.inRoom(s)) return 'le mur';
+        for (const f of this.hard) if (overlap(s, f.rect!)) return this.fixedLabel(f);
+        for (const b of blockers) if (overlap(s, b.r)) return b.label.toLowerCase();
+      }
+      return null;
+    };
+    for (let d = 1; d <= max; d++) { const by = blockedBy(d); if (by) return { depth: d - 1, by }; }
     return { depth: max, by: null };
   }
 
@@ -289,7 +303,8 @@ export class Checker {
   readonly notes: Issue[] = [];
   score = 0;
   frontDepth: Record<string, number> = {};
-  fronts = new Map<string, Rect>();
+  /** Espace libre devant chaque meuble, en morceaux (plusieurs pour un meuble en biais). */
+  fronts = new Map<string, Rect[]>();
   sideDepths: Evaluation['sideDepths'] = {};
   seats: NonNullable<Evaluation['seats']> = {};
   bedSides = 0;
@@ -384,9 +399,10 @@ export class Checker {
       const fr = this.front(it);
       if (!fr) continue;
       const blockers = this.items.filter((o) => o.id !== it.id && !allowedInFront?.(it, o)).flatMap((o) => this.parts.get(o.id)!.map((r) => ({ r, label: o.label })));
-      const fd = this.geo.freeDepth((d) => this.geo.frontOf(it, d, fr.inset), fr.comfort, blockers);
+      const fd = it.tilt ? this.geo.freeDepthParts((d) => frontParts(it, d), fr.comfort, blockers) : this.geo.freeDepth((d) => this.geo.frontOf(it, d, fr.inset), fr.comfort, blockers);
       this.frontDepth[it.id] = fd.depth;
-      this.fronts.set(it.id, this.geo.frontOf(it, Math.max(1, Math.min(fd.depth, fr.comfort)), fr.inset));
+      const depth = Math.max(1, Math.min(fd.depth, fr.comfort));
+      this.fronts.set(it.id, it.tilt ? frontParts(it, depth) : [this.geo.frontOf(it, depth, fr.inset)]);
       if (fd.depth < fr.min) this.err(it.id, `${it.label} : ${fd.depth} cm ${fr.what}, bloqué par ${fd.by} (minimum ${fr.min}).`);
       else if (fd.depth < fr.comfort) { this.warn(it.id, `${it.label} : ${fd.depth} cm ${fr.what} (confort ${fr.comfort}, minimum ${fr.min}).`); this.score -= (fr.comfort - fd.depth) * 0.4; }
     }
@@ -398,7 +414,8 @@ export class Checker {
       const zone = this.fronts.get(it.id);
       if (!zone) continue;
       for (const z of this.geo.data.zones) {
-        if (!z.frontWarning || overlapArea(zone, z.rect) <= (z.kind === 'entry' ? 0 : 400)) continue;
+        const area = zone.reduce((s, r) => s + overlapArea(r, z.rect), 0);
+        if (!z.frontWarning || area <= (z.kind === 'entry' ? 0 : 400)) continue;
         this.warn(it.id, z.frontWarning.replace('{what}', subject));
         this.score -= z.kind === 'entry' ? penalties.entry : penalties.keepFree;
       }
@@ -427,7 +444,7 @@ export class Checker {
     this.circ = this.geo.circulation([...this.parts.values()].flat());
     for (const it of this.items) {
       const zone = this.fronts.get(it.id), fr = this.front(it);
-      if (zone && fr && this.frontDepth[it.id] >= fr.min && !this.circ.reaches(zone))
+      if (zone && fr && this.frontDepth[it.id] >= fr.min && !zone.some((r) => this.circ.reaches(r)))
         this.err(it.id, `${it.label} : on ne peut pas y accéder depuis la porte (passage < 45 cm).`);
     }
   }
