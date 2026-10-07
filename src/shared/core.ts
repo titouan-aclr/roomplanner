@@ -93,8 +93,9 @@ export class RoomGeo {
   }
 
   /** Espace devant le meuble. En épi découpé, la partie devant l'élément fixe ne compte pas. */
-  frontOf(item: PlacedItem, depth: number): Rect {
-    const r = frontRect(item, depth);
+  frontOf(item: PlacedItem, depth: number, inset = 0): Rect {
+    let r = frontRect(item, depth);
+    if (inset) r = item.face === 'S' || item.face === 'N' ? { ...r, x: r.x + inset, w: Math.max(1, r.w - 2 * inset) } : { ...r, y: r.y + inset, h: Math.max(1, r.h - 2 * inset) };
     const n = this.notch(item);
     if (!n || n.mode !== 'side') return r;
     const fr = n.fixed.rect!;
@@ -309,7 +310,7 @@ export class Checker {
     const f = this.spec(it).front;
     const comfort = it.clear ?? f?.comfort ?? 0;
     if (!comfort) return null;
-    return { comfort, min: Math.min(it.min ?? f?.min ?? comfort, comfort), what: f?.what ?? 'devant' };
+    return { comfort, min: Math.min(it.min ?? f?.min ?? comfort, comfort), what: f?.what ?? 'devant', inset: f?.inset ?? 0 };
   }
 
   /** Murs, obstacles, zones à garder libres, largeurs autorisées, plateaux découpés. */
@@ -378,9 +379,9 @@ export class Checker {
       const fr = this.front(it);
       if (!fr) continue;
       const blockers = this.items.filter((o) => o.id !== it.id && !allowedInFront?.(it, o)).map((o) => ({ r: this.fp.get(o.id)!, label: o.label }));
-      const fd = this.geo.freeDepth((d) => this.geo.frontOf(it, d), fr.comfort, blockers);
+      const fd = this.geo.freeDepth((d) => this.geo.frontOf(it, d, fr.inset), fr.comfort, blockers);
       this.frontDepth[it.id] = fd.depth;
-      this.fronts.set(it.id, this.geo.frontOf(it, Math.max(1, Math.min(fd.depth, fr.comfort))));
+      this.fronts.set(it.id, this.geo.frontOf(it, Math.max(1, Math.min(fd.depth, fr.comfort)), fr.inset));
       if (fd.depth < fr.min) this.err(it.id, `${it.label} : ${fd.depth} cm ${fr.what}, bloqué par ${fd.by} (minimum ${fr.min}).`);
       else if (fd.depth < fr.comfort) { this.warn(it.id, `${it.label} : ${fd.depth} cm ${fr.what} (confort ${fr.comfort}, minimum ${fr.min}).`); this.score -= (fr.comfort - fd.depth) * 0.4; }
     }
@@ -494,13 +495,13 @@ export class Checker {
 // Recherche
 // =====================================================================
 /** Deux meubles se gênent : emprises qui se chevauchent ou meuble dans l'espace minimum devant l'autre. */
-export function makeClash(geo: RoomGeo, minFront: (it: PlacedItem) => number, allowedInFront?: (it: PlacedItem, other: PlacedItem) => boolean) {
+export function makeClash(geo: RoomGeo, minFront: (it: PlacedItem) => number, allowedInFront?: (it: PlacedItem, other: PlacedItem) => boolean, frontInset: (it: PlacedItem) => number = () => 0) {
   return (a: PlacedItem, b: PlacedItem) => {
     const fa = footprint(a), fb = footprint(b);
     if (overlap(fa, fb)) return true;
     const ma = minFront(a), mb = minFront(b);
-    if (ma && !allowedInFront?.(a, b) && overlap(geo.frontOf(a, ma), fb)) return true;
-    if (mb && !allowedInFront?.(b, a) && overlap(geo.frontOf(b, mb), fa)) return true;
+    if (ma && !allowedInFront?.(a, b) && overlap(geo.frontOf(a, ma, frontInset(a)), fb)) return true;
+    if (mb && !allowedInFront?.(b, a) && overlap(geo.frontOf(b, mb, frontInset(b)), fa)) return true;
     return false;
   };
 }

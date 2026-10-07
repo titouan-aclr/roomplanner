@@ -9,7 +9,8 @@ export const catalog: Record<string, FurnitureType> = {
    */
   sofa: {
     label: 'Canapé-lit', color: 'sofa', render: 'sofa', w: 200, d: 95, h: 85,
-    front: { comfort: 45, min: 30, what: 'pour les jambes' },
+    // accoudoirs de 20 cm (15 à 25 en général) : pas besoin de place pour les jambes devant eux
+    front: { comfort: 45, min: 30, what: 'pour les jambes', inset: 20 },
     width: { min: 150, soft: 180, max: 235 },
   },
   lamp: { label: 'Lampadaire', color: 'lamp', render: 'lamp', w: 30, d: 30, h: 170 },

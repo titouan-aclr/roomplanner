@@ -11,7 +11,7 @@ import { catalog } from './catalog';
 const PRESENCE: Record<string, number> = { sofa: 40, armchair: 15, piano: 8 };
 const SEAT = { comfort: 75, min: 60, width: 50 };
 /** Largeur d'un accoudoir de canapé (15 à 25 cm en général). */
-export const ARMREST = 20;
+export const ARMREST = catalog.sofa.front?.inset ?? 20;
 const SIDE_NAME: Record<Side, string> = { top: 'en haut', bottom: 'en bas', left: 'à gauche', right: 'à droite' };
 
 /** Bande de profondeur d (largeur d'une chaise) sur un côté de la table. */
@@ -49,7 +49,13 @@ export function looksAt(geo: RoomGeo, seat: PlacedItem): View {
   let d = 5;
   while (d < 500 && geo.fitsFixed(band(d + 5))) d += 5;
   const ray = band(d), hit = band(d + 5);
-  if (geo.data.zones.some((z) => z.id.startsWith('door') && overlap(ray, z.rect))) return 'porte';
+  // une porte compte si le regard la couvre sur au moins 20 cm de large (pas s'il la frôle)
+  const across = (z: Rect) => {
+    const i = { x: Math.max(ray.x, z.x), y: Math.max(ray.y, z.y), x2: Math.min(ray.x + ray.w, z.x + z.w), y2: Math.min(ray.y + ray.h, z.y + z.h) };
+    if (i.x2 <= i.x || i.y2 <= i.y) return 0;
+    return seat.face === 'S' || seat.face === 'N' ? i.x2 - i.x : i.y2 - i.y;
+  };
+  if (geo.data.zones.some((z) => z.id.startsWith('door') && across(z.rect) >= 20)) return 'porte';
   const fixedHit = (id: string) => { const f = geo.fixed(id)?.rect; return !!f && overlap(hit, f); };
   if (fixedHit('kitchen')) return 'cuisine';
   if (fixedHit('chimney')) return 'cheminée';

@@ -82,7 +82,11 @@ export interface FurnitureType {
   d: number;
   h: number;
   /** Espace devant (chaise, portes, tiroirs, banc…). */
-  front?: Clearance & { what: string };
+  front?: Clearance & {
+    what: string;
+    /** Bords latéraux non concernés (accoudoirs d'un canapé, en cm de chaque côté) : l'espace n'est exigé que devant le reste. */
+    inset?: number;
+  };
   /** Passage sur les côtés (lit). */
   sides?: Clearance;
   /** Largeurs acceptées : min bloquant, soft avertissement, max bloquant. */

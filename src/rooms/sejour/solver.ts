@@ -33,13 +33,14 @@ export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {})
     return ws.flatMap((w) => ds.map((d) => ({ w, d })));
   };
   const minFront = (it: PlacedItem) => (it.min ?? catalog[it.type]?.front?.min ?? 0);
+  const inset = (it: PlacedItem) => catalog[it.type]?.front?.inset ?? 0;
   const usable = (c: PlacedItem) => {
     const f = footprint(c);
     if (!geo.fitsFixed(f) || !geo.freeOfZones(f)) return false;
     const m = minFront(c);
-    return !m || geo.fitsFixed(geo.frontOf(c, m));
+    return !m || geo.fitsFixed(geo.frontOf(c, m, inset(c)));
   };
-  const clash = makeClash(geo, minFront, allowedInFront);
+  const clash = makeClash(geo, minFront, allowedInFront, inset);
   let evaluated = 0;
   const score = (layout: Layout): Scored | null => {
     evaluated++;
