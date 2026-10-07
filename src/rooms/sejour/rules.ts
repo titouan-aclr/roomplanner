@@ -1,12 +1,14 @@
 // Règles et note propres au séjour.
 import { type Blocker, Checker, type RoomGeo } from '../../shared/core';
-import { frontRect, overlap } from '../../shared/geometry';
+import { frontRect, localRect, overlap } from '../../shared/geometry';
 import type { Evaluation, Layout, PlacedItem, Rect, Side } from '../../shared/types';
 import { catalog } from './catalog';
 
 /** Ordre de priorité donné : canapé, lampadaire, fauteuil, table basse, puis piano. */
 const PRESENCE: Record<string, number> = { sofa: 40, lamp: 20, armchair: 15, coffee: 12, piano: 8 };
 const SEAT = { comfort: 75, min: 60, width: 50 };
+/** Largeur d'un accoudoir de canapé (15 à 25 cm en général). */
+export const ARMREST = 20;
 const SIDE_NAME: Record<Side, string> = { top: 'en haut', bottom: 'en bas', left: 'à gauche', right: 'à droite' };
 
 /** Bande de profondeur d (largeur d'une chaise) sur un côté de la table. */
@@ -125,7 +127,10 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
   if (chimney) {
     const front = { x: chimney.x, y: chimney.y + chimney.h, w: chimney.w, h: 60 };
     for (const it of c.items) {
-      if (!['table', 'sofa', 'armchair'].includes(it.type) || !overlap(fp(it), front)) continue;
+      if (!['table', 'sofa', 'armchair'].includes(it.type)) continue;
+      // les accoudoires du canapé peuvent dépasser devant la cheminée : seule l'assise compte
+      const body = it.type === 'sofa' ? localRect(it, ARMREST, 0, Math.max(0, it.w - 2 * ARMREST), it.d) : fp(it);
+      if (!overlap(body, front)) continue;
       c.warn(it.id, `${it.label} juste devant la cheminée : elle disparaît derrière.`);
       c.score -= 15;
     }

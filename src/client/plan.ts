@@ -178,9 +178,9 @@ export class PlanView {
         }
         case 'sofa':
           rect(gi, L(0, 0, it.w, 20), 'det', { rx: 4 });
-          rect(gi, L(0, 20, 18, it.d - 20), 'det', { rx: 4 });
-          rect(gi, L(it.w - 18, 20, 18, it.d - 20), 'det', { rx: 4 });
-          for (let i = 1; i < 3; i++) line(gi, L(18 + ((it.w - 36) / 3) * i, 22, 0.01, it.d - 26), 'detl');
+          rect(gi, L(0, 20, 20, it.d - 20), 'det', { rx: 4 });
+          rect(gi, L(it.w - 20, 20, 20, it.d - 20), 'det', { rx: 4 });
+          for (let i = 1; i < 3; i++) line(gi, L(20 + ((it.w - 40) / 3) * i, 22, 0.01, it.d - 26), 'detl');
           break;
         case 'armchair':
           rect(gi, L(4, 0, it.w - 8, 18), 'det', { rx: 8 });
