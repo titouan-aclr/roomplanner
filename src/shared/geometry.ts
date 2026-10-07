@@ -35,17 +35,68 @@ export function intersection(a: Rect, b: Rect): Rect {
   return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
 }
 
-type Box = Pick<PlacedItem, 'face' | 'x' | 'y' | 'w' | 'd'>;
+type Box = Pick<PlacedItem, 'face' | 'x' | 'y' | 'w' | 'd' | 'tilt'>;
 
-/** Emprise au sol : (x, y) est toujours le coin haut-gauche, quelle que soit l'orientation. */
+/** Côté du carré englobant d'un meuble en biais (tourné de 45°). */
+export const tiltSide = (p: Pick<PlacedItem, 'w' | 'd'>) => Math.round((p.w + p.d) * Math.SQRT1_2);
+
+/** Direction vers laquelle le meuble regarde (vecteur unitaire, y vers le bas). En biais : tournée de 45° en sens horaire. */
+export function facing(p: Pick<PlacedItem, 'face' | 'tilt'>): Point {
+  const v: Record<Face, Point> = { S: [0, 1], N: [0, -1], E: [1, 0], W: [-1, 0] };
+  const [x, y] = v[p.face];
+  return p.tilt ? [(x - y) * Math.SQRT1_2, (x + y) * Math.SQRT1_2] : [x, y];
+}
+
+/**
+ * Emprise au sol : (x, y) est toujours le coin haut-gauche, quelle que soit l'orientation.
+ * En biais, c'est le carré qui englobe le meuble tourné (approximation prudente).
+ */
 export function footprint(p: Box): Rect {
+  if (p.tilt) { const s = tiltSide(p); return { x: p.x, y: p.y, w: s, h: s }; }
   const vertical = p.face === 'S' || p.face === 'N';
   return { x: p.x, y: p.y, w: vertical ? p.w : p.d, h: vertical ? p.d : p.w };
 }
 
 /** Bande de profondeur `depth` devant la face avant. */
+/** Coins du meuble en biais (losange inscrit dans son carré englobant). */
+function tiltCorners(p: Box): Point[] {
+  const f = footprint(p), cx = f.x + f.w / 2, cy = f.y + f.h / 2, [ux, uy] = facing(p), vx = -uy, vy = ux;
+  return [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([a, b]) => [cx + (a * p.d / 2) * ux + (b * p.w / 2) * vx, cy + (a * p.d / 2) * uy + (b * p.w / 2) * vy] as Point);
+}
+
+/** Rectangle englobant d'une liste de points. */
+function bbox(pts: Point[]): Rect {
+  const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+  const x = Math.min(...xs), y = Math.min(...ys);
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+}
+
+/**
+ * Emprise réelle découpée en bandes horizontales : un seul rectangle pour un meuble droit,
+ * quelques bandes qui épousent le losange pour un meuble en biais (collisions et circulation).
+ */
+export function parts(p: Box, n = 6): Rect[] {
+  if (!p.tilt) return [footprint(p)];
+  const poly = tiltCorners(p), f = footprint(p), out: Rect[] = [];
+  for (let i = 0; i < n; i++) {
+    const y0 = f.y + (f.h * i) / n, y1 = f.y + (f.h * (i + 1)) / n, xs: number[] = [];
+    for (let k = 0; k < 4; k++) {
+      const [ax, ay] = poly[k], [bx, by] = poly[(k + 1) % 4];
+      if (ay >= y0 && ay <= y1) xs.push(ax);
+      for (const yy of [y0, y1]) if ((ay - yy) * (by - yy) < 0) xs.push(ax + ((yy - ay) / (by - ay)) * (bx - ax));
+    }
+    if (xs.length) out.push({ x: Math.min(...xs), y: y0, w: Math.max(...xs) - Math.min(...xs), h: y1 - y0 });
+  }
+  return out;
+}
+
 export function frontRect(p: Box, depth: number): Rect {
   const f = footprint(p);
+  if (p.tilt) {
+    // en biais : rectangle qui englobe la bande de profondeur `depth` devant le bord avant
+    const [ux, uy] = facing(p), [a, b] = tiltCorners(p);
+    return bbox([a, b, [a[0] + depth * ux, a[1] + depth * uy], [b[0] + depth * ux, b[1] + depth * uy]]);
+  }
   switch (p.face) {
     case 'S': return { x: f.x, y: f.y + f.h, w: f.w, h: depth };
     case 'N': return { x: f.x, y: f.y - depth, w: f.w, h: depth };

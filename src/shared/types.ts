@@ -78,6 +78,8 @@ export interface FurnitureType {
   color: string;
   /** Dessin détaillé : bed, wardrobe, desk, dresser, piano ou box. */
   render: string;
+  /** Peut être tourné de 45° (option « en biais »). */
+  tilt?: boolean;
   w: number;
   d: number;
   h: number;
@@ -133,6 +135,8 @@ export interface PlacedItem {
   hidden?: boolean;
   /** Id de l'élément fixe autour duquel le plateau est découpé (ex. « chimney »). */
   notch?: string;
+  /** Tourné de 45° dans le sens des aiguilles d'une montre par rapport à `face` (fauteuil en biais). */
+  tilt?: boolean;
   /** Surcharges des espaces devant / sur les côtés. */
   clear?: number;
   min?: number;

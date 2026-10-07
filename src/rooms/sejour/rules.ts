@@ -1,6 +1,6 @@
 // Règles et note propres au séjour.
 import { type Blocker, Checker, type RoomGeo } from '../../shared/core';
-import { frontRect, localRect, overlap } from '../../shared/geometry';
+import { facing, frontRect, localRect, overlap } from '../../shared/geometry';
 import type { Evaluation, Layout, PlacedItem, Rect, Side } from '../../shared/types';
 import { catalog } from './catalog';
 
@@ -44,6 +44,7 @@ export type View = 'cheminée' | 'fenêtre' | 'cuisine' | 'porte' | 'mur';
 export function looksAt(geo: RoomGeo, seat: PlacedItem): View {
   const band = (d: number): Rect => {
     const r = frontRect(seat, d);
+    if (seat.tilt) return r;
     return seat.face === 'S' || seat.face === 'N' ? { ...r, x: r.x + r.w / 4, w: r.w / 2 } : { ...r, y: r.y + r.h / 4, h: r.h / 2 };
   };
   let d = 5;
@@ -66,8 +67,8 @@ export function looksAt(geo: RoomGeo, seat: PlacedItem): View {
 
 /** Vrai si le point est devant l'assise (au-delà de la ligne qui passe par son milieu, côté assise). */
 function inFrontOf(seat: PlacedItem, f: Rect, [px, py]: [number, number]) {
-  const [cx, cy] = center(f);
-  return seat.face === 'S' ? py > cy : seat.face === 'N' ? py < cy : seat.face === 'E' ? px > cx : px < cx;
+  const [cx, cy] = center(f), [dx, dy] = facing(seat);
+  return (px - cx) * dx + (py - cy) * dy > 0;
 }
 
 export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
@@ -139,6 +140,8 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
   // Orientation : une assise ne regarde ni une porte ni la cuisine
   const VIEW_MSG: Partial<Record<View, string>> = { porte: 'tourné vers une porte', cuisine: 'tourné vers la cuisine' };
   for (const s of [sofa, armchair].filter(Boolean) as PlacedItem[]) {
+    // un fauteuil tourné vers le canapé le regarde, peu importe ce qu'il y a derrière
+    if (s === armchair && sofa && inFrontOf(armchair, fp(armchair), center(fp(sofa)))) continue;
     const msg = VIEW_MSG[looksAt(geo, s)];
     if (msg) c.err(s.id, `${s.label} ${msg} : ce n'est pas là qu'on veut regarder depuis le salon.`);
   }

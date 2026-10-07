@@ -1,7 +1,7 @@
 // Boîte à outils commune à toutes les pièces : géométrie, vérifications de base, génération de positions
 // et recherche. Les règles propres à une pièce (et sa note) vivent dans son module, src/rooms/<pièce>/.
 import {
-  BACK, BACK_SIDE, footprint, frontRect, intersection, LATERAL, overlap, overlapArea, pointInPoly, rectInPoly, sideRects,
+  BACK, BACK_SIDE, footprint, frontRect, intersection, LATERAL, overlap, overlapArea, parts, pointInPoly, rectInPoly, sideRects,
 } from './geometry';
 import type {
   Evaluation, FixedElement, FurnitureType, Issue, Layout, PlacedItem, Point, Rect, RoomData, Side, SolveFamily, Zone,
@@ -283,6 +283,8 @@ export class RoomGeo {
 export class Checker {
   readonly items: PlacedItem[];
   readonly fp: Map<string, Rect>;
+  /** Emprise découpée en morceaux (plusieurs pour un meuble en biais). */
+  readonly parts: Map<string, Rect[]>;
   readonly errors: Issue[] = [];
   readonly notes: Issue[] = [];
   score = 0;
@@ -297,6 +299,7 @@ export class Checker {
   constructor(readonly geo: RoomGeo, readonly catalog: Record<string, FurnitureType>, layout: Layout) {
     this.items = layout.filter((it) => !it.hidden);
     this.fp = new Map(this.items.map((it) => [it.id, footprint(it)]));
+    this.parts = new Map(this.items.map((it) => [it.id, parts(it)]));
   }
 
   err(item: string | null, msg: string) { this.errors.push({ sev: 'error', item, msg }); }
@@ -305,7 +308,9 @@ export class Checker {
 
   spec(it: PlacedItem): FurnitureType { return this.catalog[it.type] ?? this.catalog.custom; }
   byType(type: string) { return this.items.filter((it) => it.type === type); }
-  others(id: string): Blocker[] { return this.items.filter((o) => o.id !== id).map((o) => ({ r: this.fp.get(o.id)!, label: o.label })); }
+  others(id: string): Blocker[] { return this.items.filter((o) => o.id !== id).flatMap((o) => this.parts.get(o.id)!.map((r) => ({ r, label: o.label }))); }
+  /** Les morceaux d'emprise de deux meubles se touchent (un seul morceau pour un meuble droit). */
+  private hits(id: string, r: Rect) { return this.parts.get(id)!.some((p) => overlap(p, r)); }
   front(it: PlacedItem) {
     const f = this.spec(it).front;
     const comfort = it.clear ?? f?.comfort ?? 0;
@@ -318,15 +323,15 @@ export class Checker {
     const { geo } = this;
     const blockedParts = new Map<string, PlacedItem[]>();
     for (const it of this.items) {
-      const f = this.fp.get(it.id)!, spec = this.spec(it);
-      if (!geo.inRoom(f)) this.err(it.id, `${it.label} dépasse des murs.`);
+      const spec = this.spec(it);
+      if (!this.parts.get(it.id)!.every((p) => geo.inRoom(p))) this.err(it.id, `${it.label} dépasse des murs.`);
       const ignore = geo.ignoredFor(it);
-      for (const h of geo.hard) if (!ignore.includes(h.id) && overlap(f, h.rect!)) {
+      for (const h of geo.hard) if (!ignore.includes(h.id) && this.hits(it.id, h.rect!)) {
         const hint = spec.notchable === h.id ? ` (coche « découpé autour de ${geo.fixedLabel(h)} » pour l'intégrer)` : '';
         this.err(it.id, `${it.label} chevauche ${geo.fixedLabel(h)}${hint}.`);
       }
       for (const z of geo.data.zones) {
-        if (!overlap(f, z.rect)) continue;
+        if (!this.hits(it.id, z.rect)) continue;
         if (z.group) { blockedParts.set(z.id, [...(blockedParts.get(z.id) ?? []), it]); continue; }
         this.err(it.id, z.message.replace('{item}', it.label));
       }
@@ -338,7 +343,7 @@ export class Checker {
       }
       if (it.notch && !geo.notch(it)) {
         const fx = geo.fixed(it.notch);
-        if (fx?.rect && overlap(f, fx.rect)) this.err(it.id, `${it.label} : pour l'intégrer à ${geo.fixedLabel(fx)}, un bord du plateau doit toucher le mur derrière.`);
+        if (fx?.rect && overlap(this.fp.get(it.id)!, fx.rect)) this.err(it.id, `${it.label} : pour l'intégrer à ${geo.fixedLabel(fx)}, un bord du plateau doit toucher le mur derrière.`);
       }
     }
     // Zones regroupées : une partie bloquée = avertissement, toutes bloquées = bloquant.
@@ -361,7 +366,7 @@ export class Checker {
   overlaps() {
     const its = this.items;
     for (let a = 0; a < its.length; a++) for (let b = a + 1; b < its.length; b++)
-      if (overlap(this.fp.get(its[a].id)!, this.fp.get(its[b].id)!)) this.err(its[a].id, `${its[a].label} et ${its[b].label.toLowerCase()} se chevauchent.`);
+      if (this.parts.get(its[b].id)!.some((p) => this.hits(its[a].id, p))) this.err(its[a].id, `${its[a].label} et ${its[b].label.toLowerCase()} se chevauchent.`);
   }
 
   wallFixed(type: string) {
@@ -378,7 +383,7 @@ export class Checker {
     for (const it of this.items) {
       const fr = this.front(it);
       if (!fr) continue;
-      const blockers = this.items.filter((o) => o.id !== it.id && !allowedInFront?.(it, o)).map((o) => ({ r: this.fp.get(o.id)!, label: o.label }));
+      const blockers = this.items.filter((o) => o.id !== it.id && !allowedInFront?.(it, o)).flatMap((o) => this.parts.get(o.id)!.map((r) => ({ r, label: o.label })));
       const fd = this.geo.freeDepth((d) => this.geo.frontOf(it, d, fr.inset), fr.comfort, blockers);
       this.frontDepth[it.id] = fd.depth;
       this.fronts.set(it.id, this.geo.frontOf(it, Math.max(1, Math.min(fd.depth, fr.comfort)), fr.inset));
@@ -404,7 +409,7 @@ export class Checker {
   entriesConnected() {
     const entries = this.geo.entries;
     if (entries.length < 2) return;
-    const from = this.geo.circulation([...this.fp.values()], 0);
+    const from = this.geo.circulation([...this.parts.values()].flat(), 0);
     for (const e of entries.slice(1)) {
       const inner = { x: e.rect.x + 15, y: e.rect.y, w: Math.max(1, e.rect.w - 30), h: e.rect.h };
       if (!from.reaches(inner)) this.err(null, `Pas de passage d'au moins 45 cm entre ${entries[0].label.toLowerCase()} et ${e.label.toLowerCase()}.`);
@@ -419,7 +424,7 @@ export class Checker {
 
   /** Circulation depuis la porte, et accès à l'espace devant chaque meuble. */
   reachability() {
-    this.circ = this.geo.circulation([...this.fp.values()]);
+    this.circ = this.geo.circulation([...this.parts.values()].flat());
     for (const it of this.items) {
       const zone = this.fronts.get(it.id), fr = this.front(it);
       if (zone && fr && this.frontDepth[it.id] >= fr.min && !this.circ.reaches(zone))

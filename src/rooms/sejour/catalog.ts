@@ -16,7 +16,7 @@ export const catalog: Record<string, FurnitureType> = {
   lamp: { label: 'Lampadaire', color: 'lamp', render: 'lamp', w: 30, d: 30, h: 170 },
   /** Fauteuil pivotant IKEA DYVLINGE (63 × 75 × 68) : son orientation compte peu. */
   armchair: {
-    label: 'Fauteuil', color: 'armchair', render: 'armchair', w: 63, d: 75, h: 68,
+    label: 'Fauteuil', color: 'armchair', render: 'armchair', w: 63, d: 75, h: 68, tilt: true,
     front: { comfort: 50, min: 30, what: 'pour les jambes' },
   },
   /** Table basse ou simple table d'appoint : devant le canapé ou le fauteuil (à 30 cm au moins), ou à côté d'une assise si elle est petite. */
