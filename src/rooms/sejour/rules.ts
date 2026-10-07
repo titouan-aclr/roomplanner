@@ -54,13 +54,18 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
     const wanted = Math.max(2, Math.min(4, t.count ?? 4));
     const sides: Side[] = [];
     const tight: string[] = [];
+    const depths: { depth: number; ok: boolean }[] = [];
     for (const side of ['top', 'bottom', 'left', 'right'] as Side[]) {
       const d = geo.freeDepth((x) => seatStrip(f, side, x), SEAT.comfort, blockers).depth;
-      if (d < SEAT.min || !c.circ.reaches(seatStrip(f, side, Math.min(d, 60)))) continue;
+      const ok = d >= SEAT.min && c.circ.reaches(seatStrip(f, side, Math.min(d, 60)));
+      depths.push({ depth: d, ok });
+      if (!ok) continue;
       sides.push(side);
       if (d < SEAT.comfort) { tight.push(`${SIDE_NAME[side]} ${d} cm`); c.score -= (SEAT.comfort - d) * 0.2; }
     }
     c.seats[t.id] = sides.slice(0, wanted);
+    // profondeur libre derrière chaque côté (haut, bas, gauche, droite), pour dessiner les dégagements
+    c.sideDepths[t.id] = depths;
     const n = Math.min(sides.length, wanted);
     if (sides.length < 2) c.err(t.id, `${t.label} : place pour ${sides.length} chaise${sides.length > 1 ? 's' : ''} seulement, il en faut au moins 2 (${SEAT.min} cm minimum derrière chaque chaise, ${SEAT.comfort} pour être à l'aise).`);
     else if (n < wanted) c.warn(t.id, `${t.label} : place pour ${n} chaises sur ${wanted} souhaitées.`);

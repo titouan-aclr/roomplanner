@@ -104,6 +104,21 @@ export class PlanView {
             el('circle', { cx: ch.x + ch.w / 2, cy: ch.y + ch.h / 2, r: 28, class: 'chair', style: `--c:${c}` }, g);
           }
         }
+        // Table ronde : dégagement derrière chaque chaise (50 cm de large, 75 cm conseillés)
+        const seatSides = ev.seats?.[it.id];
+        if (seatSides && spec?.render === 'roundTable') {
+          const ft = footprint(it), depths = ev.sideDepths[it.id] ?? [];
+          const order = ['top', 'bottom', 'left', 'right'];
+          for (const side of seatSides) {
+            const d = Math.min(depths[order.indexOf(side)]?.depth ?? 75, 75);
+            const cx = ft.x + ft.w / 2, cy = ft.y + ft.h / 2;
+            const r = side === 'top' ? { x: cx - 25, y: ft.y - d, w: 50, h: d }
+              : side === 'bottom' ? { x: cx - 25, y: ft.y + ft.h, w: 50, h: d }
+              : side === 'left' ? { x: ft.x - d, y: cy - 25, w: d, h: 50 }
+              : { x: ft.x + ft.w, y: cy - 25, w: d, h: 50 };
+            rect(g, r, 'clr' + (d < 75 ? ' warn' : ''), { style: `--c:${c}` });
+          }
+        }
         const sides = ev.sideDepths[it.id];
         if (sides && spec?.sides) {
           const comfy = it.sides ?? spec.sides.comfort;
