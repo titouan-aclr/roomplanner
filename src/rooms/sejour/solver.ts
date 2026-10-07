@@ -116,19 +116,20 @@ export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {})
     const ct = tpl('coffee');
     const coffeeSizes = sizes('coffee', ct);
     beam = expand(beam, (l) => {
-      const sofa = l.find((i) => i.type === 'sofa');
       const out: PlacedItem[] = [];
       for (const { w, d } of coffeeSizes) {
         if (w <= 50 && d <= 50) out.push(...besideSeats(l, ct, w, d));
-        if (!sofa) continue;
-        const fr = frontRect(sofa, 45 + d);
-        const horiz = sofa.face === 'S' || sofa.face === 'N';
-        const face = sofa.face === 'S' ? 'N' : sofa.face === 'N' ? 'S' : sofa.face === 'E' ? 'W' : 'E';
-        const fw = horiz ? w : d, fh = horiz ? d : w;
-        const x = horiz ? Math.round(fr.x + (fr.w - fw) / 2) : sofa.face === 'E' ? fr.x + 45 : fr.x;
-        const y = horiz ? (sofa.face === 'S' ? fr.y + 45 : fr.y) : Math.round(fr.y + (fr.h - fh) / 2);
-        const p: PlacedItem = { ...ct, face, x, y, w, d };
-        if (usable(p)) out.push(p);
+        // centrée devant le canapé ou le fauteuil, à 30 ou 45 cm
+        for (const seat of l.filter((i) => i.type === 'sofa' || i.type === 'armchair')) for (const g of [30, 45]) {
+          const fr = frontRect(seat, g + d);
+          const horiz = seat.face === 'S' || seat.face === 'N';
+          const face = seat.face === 'S' ? 'N' : seat.face === 'N' ? 'S' : seat.face === 'E' ? 'W' : 'E';
+          const fw = horiz ? w : d, fh = horiz ? d : w;
+          const x = horiz ? Math.round(fr.x + (fr.w - fw) / 2) : seat.face === 'E' ? fr.x + g : fr.x;
+          const y = horiz ? (seat.face === 'S' ? fr.y + g : fr.y) : Math.round(fr.y + (fr.h - fh) / 2);
+          const p: PlacedItem = { ...ct, face, x, y, w, d };
+          if (usable(p)) out.push(p);
+        }
       }
       return out;
     }, true);

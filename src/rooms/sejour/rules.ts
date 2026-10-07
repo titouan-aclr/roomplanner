@@ -1,6 +1,6 @@
 // Règles et note propres au séjour.
 import { type Blocker, Checker, type RoomGeo } from '../../shared/core';
-import { frontRect } from '../../shared/geometry';
+import { frontRect, overlap } from '../../shared/geometry';
 import type { Evaluation, Layout, PlacedItem, Rect, Side } from '../../shared/types';
 import { catalog } from './catalog';
 
@@ -37,13 +37,15 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
   c.reachability();
   c.entriesConnected();
   c.zoneReachable('kitchenWork', 'On ne peut plus accéder à la cuisine depuis les portes.');
-  c.zoneReachable('windowSwing', 'On ne peut plus atteindre la fenêtre pour l’ouvrir.');
+  const leaves = geo.data.zones.filter((z) => z.group === 'window');
+  if (leaves.length && !leaves.some((z) => c.circ.reaches(z.rect))) c.err(null, 'On ne peut plus atteindre la fenêtre pour l’ouvrir.');
 
   const fp = (it: PlacedItem) => c.fp.get(it.id)!;
   const sofa = c.byType('sofa')[0], coffee = c.byType('coffee')[0], armchair = c.byType('armchair')[0];
 
   // Table ronde : une chaise par côté où il reste de la place pour s'asseoir et se lever.
-  const zones: Blocker[] = geo.data.zones.filter((z) => z.kind === 'keepFree').map((z) => ({ r: z.rect, label: z.label }));
+  // une chaise peut toujours être devant la fenêtre (battants) : seules les autres zones la gênent
+  const zones: Blocker[] = geo.data.zones.filter((z) => z.kind === 'keepFree' && !z.group).map((z) => ({ r: z.rect, label: z.label }));
   for (const t of c.byType('table')) {
     const f = fp(t), blockers = c.others(t.id).concat(zones);
     const wanted = Math.max(2, Math.min(4, t.count ?? 4));
@@ -76,13 +78,18 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
   // Table basse ou d'appoint : devant le canapé, ou (si elle est petite) à côté du canapé ou du fauteuil
   if (coffee) {
     c.score += PRESENCE.coffee;
-    const inFront = !!sofa && (() => {
-      const zone = frontRect(sofa, 80), [x, y] = center(fp(coffee));
+    const seatsAround = [sofa, armchair].filter(Boolean) as PlacedItem[];
+    const frontOf = seatsAround.filter((s) => {
+      const zone = frontRect(s, 80), [x, y] = center(fp(coffee));
       return x > zone.x && x < zone.x + zone.w && y > zone.y && y < zone.y + zone.h;
-    })();
+    });
+    for (const s of frontOf) {
+      const g = gap(fp(coffee), fp(s));
+      if (g < 30) c.err(coffee.id, `${coffee.label} à ${Math.round(g)} cm ${s.type === 'sofa' ? 'du canapé' : 'du fauteuil'} : 30 cm minimum devant une assise.`);
+    }
     const small = coffee.w <= 50 && coffee.d <= 50;
-    const beside = small && [sofa, armchair].some((s) => s && gap(fp(coffee), fp(s)) <= 40);
-    if (!inFront && !beside) { c.warn(coffee.id, `${coffee.label} : ni devant le canapé ni à côté d'une assise.`); c.score -= 8; }
+    const beside = small && seatsAround.some((s) => gap(fp(coffee), fp(s)) <= 40);
+    if (!frontOf.length && !beside) { c.warn(coffee.id, `${coffee.label} : ni devant le canapé ou le fauteuil, ni à côté d'une assise.`); c.score -= 8; }
   }
 
   // Fauteuil : assez proche du canapé ou de la table basse pour discuter
@@ -103,6 +110,17 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
     const seats = [sofa, armchair].filter(Boolean) as PlacedItem[];
     const near = seats.some((s) => gap(fp(lamp), fp(s)) <= 40);
     if (!near) { c.warn(lamp.id, `${lamp.label} loin du canapé et du fauteuil : il éclairera mal le coin salon.`); c.score -= 8; }
+  }
+
+  // Gros meubles juste devant la cheminée : à éviter (une table d'appoint ne gêne pas)
+  const chimney = geo.fixed('chimney')?.rect;
+  if (chimney) {
+    const front = { x: chimney.x, y: chimney.y + chimney.h, w: chimney.w, h: 60 };
+    for (const it of c.items) {
+      if (!['table', 'sofa', 'armchair'].includes(it.type) || !overlap(fp(it), front)) continue;
+      c.warn(it.id, `${it.label} juste devant la cheminée : elle disparaît derrière.`);
+      c.score -= 15;
+    }
   }
 
   c.score += c.byType('piano').length * PRESENCE.piano;

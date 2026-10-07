@@ -9,16 +9,16 @@ export const catalog: Record<string, FurnitureType> = {
    */
   sofa: {
     label: 'Canapé-lit', color: 'sofa', render: 'sofa', w: 200, d: 95, h: 85,
-    front: { comfort: 45, min: 35, what: 'pour les jambes' },
+    front: { comfort: 45, min: 30, what: 'pour les jambes' },
     width: { min: 150, soft: 180, max: 235 },
   },
   lamp: { label: 'Lampadaire', color: 'lamp', render: 'lamp', w: 30, d: 30, h: 170 },
   /** Fauteuil pivotant IKEA DYVLINGE (63 × 75 × 68) : son orientation compte peu. */
   armchair: {
     label: 'Fauteuil', color: 'armchair', render: 'armchair', w: 63, d: 75, h: 68,
-    front: { comfort: 50, min: 35, what: 'pour les jambes' },
+    front: { comfort: 50, min: 30, what: 'pour les jambes' },
   },
-  /** Table basse ou simple table d'appoint : petite, devant ou à côté d'une assise. */
+  /** Table basse ou simple table d'appoint : devant le canapé ou le fauteuil (à 30 cm au moins), ou à côté d'une assise si elle est petite. */
   coffee: { label: 'Table d’appoint', color: 'coffee', render: 'coffee', w: 30, d: 30, h: 45 },
   piano: {
     label: 'Piano', color: 'piano', render: 'piano', w: 135, d: 32, h: 90,
