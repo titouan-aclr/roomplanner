@@ -46,7 +46,8 @@ export class RoomGeo {
     for (const f of this.hard) if (!ignore.includes(f.id) && overlap(r, f.rect!)) return false;
     return true;
   }
-  freeOfZones(r: Rect) { return this.data.zones.every((z) => !overlap(r, z.rect)); }
+  /** Hors des zones à garder libres. Les zones regroupées (battants) sont jugées par l'évaluation. */
+  freeOfZones(r: Rect) { return this.data.zones.every((z) => z.group || !overlap(r, z.rect)); }
 
   /** Dos réellement contre un mur de la pièce (un élément fixe ne compte pas). */
   backOnWall(item: PlacedItem) {
@@ -314,6 +315,7 @@ export class Checker {
   /** Murs, obstacles, zones à garder libres, largeurs autorisées, plateaux découpés. */
   placement() {
     const { geo } = this;
+    const blockedParts = new Map<string, PlacedItem[]>();
     for (const it of this.items) {
       const f = this.fp.get(it.id)!, spec = this.spec(it);
       if (!geo.inRoom(f)) this.err(it.id, `${it.label} dépasse des murs.`);
@@ -322,7 +324,11 @@ export class Checker {
         const hint = spec.notchable === h.id ? ` (coche « découpé autour de ${geo.fixedLabel(h)} » pour l'intégrer)` : '';
         this.err(it.id, `${it.label} chevauche ${geo.fixedLabel(h)}${hint}.`);
       }
-      for (const z of geo.data.zones) if (overlap(f, z.rect)) this.err(it.id, z.message.replace('{item}', it.label));
+      for (const z of geo.data.zones) {
+        if (!overlap(f, z.rect)) continue;
+        if (z.group) { blockedParts.set(z.id, [...(blockedParts.get(z.id) ?? []), it]); continue; }
+        this.err(it.id, z.message.replace('{item}', it.label));
+      }
       const wr = spec.width;
       if (wr) {
         if (wr.min && it.w < wr.min) this.err(it.id, `${it.label} : ${it.w} cm de large, sous ta limite de ${wr.min} cm.`);
@@ -332,6 +338,21 @@ export class Checker {
       if (it.notch && !geo.notch(it)) {
         const fx = geo.fixed(it.notch);
         if (fx?.rect && overlap(f, fx.rect)) this.err(it.id, `${it.label} : pour l'intégrer à ${geo.fixedLabel(fx)}, un bord du plateau doit toucher le mur derrière.`);
+      }
+    }
+    // Zones regroupées : une partie bloquée = avertissement, toutes bloquées = bloquant.
+    const groups = new Map<string, Zone[]>();
+    for (const z of geo.data.zones) if (z.group) groups.set(z.group, [...(groups.get(z.group) ?? []), z]);
+    for (const [, parts] of groups) {
+      const blocked = parts.filter((z) => blockedParts.has(z.id));
+      if (!blocked.length) continue;
+      const label = parts[0].groupLabel ?? parts[0].label.toLowerCase();
+      if (blocked.length === parts.length) {
+        const who = [...new Set(blocked.flatMap((z) => blockedParts.get(z.id)!.map((i) => i.label)))].join(', ');
+        this.err(null, `${who} : ${label} ne peut plus s'ouvrir du tout, il faut au moins un battant libre.`);
+      } else for (const z of blocked) for (const it of blockedParts.get(z.id)!) {
+        this.warn(it.id, z.message.replace('{item}', it.label));
+        this.score -= 4;
       }
     }
   }

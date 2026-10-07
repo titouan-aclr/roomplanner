@@ -55,6 +55,13 @@ export interface Zone {
   id: string;
   /** keepFree : aucun meuble ; entry : passage depuis la porte (point de départ de la circulation). */
   kind: 'keepFree' | 'entry';
+  /**
+   * Zones d'un même groupe (les battants d'une fenêtre) : un meuble peut en bloquer une partie
+   * (avertissement), jamais toutes à la fois.
+   */
+  group?: string;
+  /** Nom du groupe pour les messages (« la fenêtre »). */
+  groupLabel?: string;
   label: string;
   rect: Rect;
   message: string;
