@@ -36,6 +36,34 @@ function gap(a: Rect, b: Rect) {
 /** Le lampadaire peut se trouver devant le canapé ou le fauteuil, même collé. */
 export const allowedInFront = (it: PlacedItem, other: PlacedItem) => other.type === 'lamp' && (it.type === 'sofa' || it.type === 'armchair');
 
+export type View = 'cheminée' | 'fenêtre' | 'cuisine' | 'porte' | 'mur';
+/**
+ * Ce que regarde une assise : on prolonge la moitié centrale de son assise droit devant elle
+ * jusqu'au premier mur ou élément fixe (les meubles ne comptent pas).
+ */
+export function looksAt(geo: RoomGeo, seat: PlacedItem): View {
+  const band = (d: number): Rect => {
+    const r = frontRect(seat, d);
+    return seat.face === 'S' || seat.face === 'N' ? { ...r, x: r.x + r.w / 4, w: r.w / 2 } : { ...r, y: r.y + r.h / 4, h: r.h / 2 };
+  };
+  let d = 5;
+  while (d < 500 && geo.fitsFixed(band(d + 5))) d += 5;
+  const ray = band(d), hit = band(d + 5);
+  if (geo.data.zones.some((z) => z.id.startsWith('door') && overlap(ray, z.rect))) return 'porte';
+  const fixedHit = (id: string) => { const f = geo.fixed(id)?.rect; return !!f && overlap(hit, f); };
+  if (fixedHit('kitchen')) return 'cuisine';
+  if (fixedHit('chimney')) return 'cheminée';
+  const win = geo.data.openings.find((o) => o.kind === 'window')?.rect;
+  if (win && overlap(hit, { x: win.x - 5, y: win.y, w: win.w + 10, h: win.h })) return 'fenêtre';
+  return 'mur';
+}
+
+/** Vrai si le point est devant l'assise (au-delà de la ligne qui passe par son milieu, côté assise). */
+function inFrontOf(seat: PlacedItem, f: Rect, [px, py]: [number, number]) {
+  const [cx, cy] = center(f);
+  return seat.face === 'S' ? py > cy : seat.face === 'N' ? py < cy : seat.face === 'E' ? px > cx : px < cx;
+}
+
 export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
   const c = new Checker(geo, catalog, layout);
   c.placement();
@@ -95,8 +123,20 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
     }
   }
 
-  // Fauteuil : n'importe où, sa position par rapport au canapé ne compte pas
   if (armchair) c.score += PRESENCE.armchair;
+
+  // Orientation : une assise ne regarde ni une porte ni la cuisine
+  const VIEW_MSG: Partial<Record<View, string>> = { porte: 'tourné vers une porte', cuisine: 'tourné vers la cuisine' };
+  for (const s of [sofa, armchair].filter(Boolean) as PlacedItem[]) {
+    const msg = VIEW_MSG[looksAt(geo, s)];
+    if (msg) c.err(s.id, `${s.label} ${msg} : ce n'est pas là qu'on veut regarder depuis le salon.`);
+  }
+  // Canapé et fauteuil forment un coin salon : face à face ou en L, jamais dos à dos
+  if (sofa && armchair) {
+    const sf = fp(sofa), af = fp(armchair);
+    if (!inFrontOf(sofa, sf, center(af))) c.err(armchair.id, `${armchair.label} derrière le canapé : on ne peut pas discuter de l'un à l'autre.`);
+    else if (!inFrontOf(armchair, af, center(sf))) c.err(armchair.id, `${armchair.label} tourne le dos au canapé : tourne-le vers lui.`);
+  }
 
   // Gros meubles juste devant la cheminée : à éviter (une table d'appoint ne gêne pas)
   const chimney = geo.fixed('chimney')?.rect;

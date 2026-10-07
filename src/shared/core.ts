@@ -351,8 +351,8 @@ export class Checker {
         const who = [...new Set(blocked.flatMap((z) => blockedParts.get(z.id)!.map((i) => i.label)))].join(', ');
         this.err(null, `${who} : ${label} ne peut plus s'ouvrir du tout, il faut au moins un battant libre.`);
       } else for (const z of blocked) for (const it of blockedParts.get(z.id)!) {
-        this.warn(it.id, z.message.replace('{item}', it.label));
-        this.score -= 4;
+        // un seul battant caché : simple information, sans pénalité
+        this.info(it.id, z.message.replace('{item}', it.label));
       }
     }
   }
