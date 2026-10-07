@@ -468,6 +468,7 @@ export class App {
           <label>Profondeur<input id="f-d" type="number" inputmode="numeric" min="10" max="400" value="${it.d}"${dis}></label>
           <label>${clrName}, confort<input id="f-clear" type="number" inputmode="numeric" min="0" max="200" value="${comfort}"${dis}></label>
           <label>${clrName}, minimum<input id="f-min" type="number" inputmode="numeric" min="0" max="200" value="${min}"${dis}></label>
+          ${spec.render === 'roundTable' ? `<label class="full">Chaises souhaitées (2 à 4)<input id="f-count" type="number" inputmode="numeric" min="2" max="4" value="${it.count ?? 4}"${dis}></label>` : ''}
           ${spec.notchable ? `<label class="check full"><input id="f-notch" type="checkbox"${it.notch ? ' checked' : ''}${dis}> Découpé autour de ${esc(this.room.data.fixed.find((f) => f.id === spec.notchable)?.labelDef ?? spec.notchable)}</label>` : ''}
           <label class="full">Dos contre<select id="f-face"${dis}>${(Object.keys(WALL) as Face[]).map((f) => `<option value="${f}"${f === it.face ? ' selected' : ''}>${WALL[f]}</option>`).join('')}</select></label>
           <label>x (cm)<input id="f-x" type="number" inputmode="numeric" value="${it.x}"${dis}></label>
@@ -483,6 +484,7 @@ export class App {
         bind('#f-d', (v) => { if (+v > 0) it.d = +v; });
         bind('#f-clear', (v) => { if (isBed) it.sides = pos(v); else it.clear = pos(v); });
         bind('#f-min', (v) => { if (isBed) it.sidesMin = pos(v); else it.min = pos(v); });
+        bind('#f-count', (v) => { const n = Math.round(Number(v)); if (n >= 2 && n <= 4) it.count = n; });
         bind('#f-face', (v) => this.setFace(it, v as Face), 'change');
         bind('#f-x', (v) => { it.x = Number(v) || 0; });
         bind('#f-y', (v) => { it.y = Number(v) || 0; });

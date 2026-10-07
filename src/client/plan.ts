@@ -120,7 +120,9 @@ export class PlanView {
         class: `item${sel === it.id ? ' sel' : ''}${hasError(it.id) ? ' bad' : ''}${host.editable() ? '' : ' locked'}`,
         'data-id': it.id, style: `--c:${color(it)}`, tabindex: 0, role: 'button', 'aria-label': `${it.label} ${it.w} par ${it.d}`,
       }, g);
-      rect(gi, f, 'fp');
+      const round = spec?.render === 'roundTable' || spec?.render === 'lamp';
+      if (round) el('circle', { cx: f.x + f.w / 2, cy: f.y + f.h / 2, r: Math.min(f.w, f.h) / 2, class: 'fp' }, gi);
+      else rect(gi, f, 'fp');
       const L = (u: number, v: number, du: number, dv: number) => localRect(it, u, v, du, dv);
       switch (spec?.render) {
         case 'bed':
@@ -146,6 +148,33 @@ export class PlanView {
           break;
         }
         case 'dresser': rect(gi, L(it.w / 2 - 19, it.d / 2 - 19, 38, 36), 'det'); break;
+        case 'roundTable': {
+          // chaises sur les côtés où il reste de la place
+          const cx = f.x + f.w / 2, cy = f.y + f.h / 2, cw = 42, cd = 40, off = 8;
+          for (const side of ev.seats?.[it.id] ?? []) {
+            const r = side === 'top' ? { x: cx - cw / 2, y: f.y - cd + off, w: cw, h: cd }
+              : side === 'bottom' ? { x: cx - cw / 2, y: f.y + f.h - off, w: cw, h: cd }
+              : side === 'left' ? { x: f.x - cd + off, y: cy - cw / 2, w: cd, h: cw }
+              : { x: f.x + f.w - off, y: cy - cw / 2, w: cd, h: cw };
+            rect(gi, r, 'chairseat', { rx: 6 });
+          }
+          gi.appendChild(gi.firstChild!); // le plateau passe au-dessus des chaises
+          break;
+        }
+        case 'sofa':
+          rect(gi, L(0, 0, it.w, 20), 'det', { rx: 4 });
+          rect(gi, L(0, 20, 18, it.d - 20), 'det', { rx: 4 });
+          rect(gi, L(it.w - 18, 20, 18, it.d - 20), 'det', { rx: 4 });
+          for (let i = 1; i < 3; i++) line(gi, L(18 + ((it.w - 36) / 3) * i, 22, 0.01, it.d - 26), 'detl');
+          break;
+        case 'armchair':
+          rect(gi, L(4, 0, it.w - 8, 18), 'det', { rx: 8 });
+          rect(gi, L(8, 18, it.w - 16, it.d - 24), 'det', { rx: 10 });
+          break;
+        case 'lamp':
+          el('circle', { cx: f.x + f.w / 2, cy: f.y + f.h / 2, r: Math.min(f.w, f.h) / 2 - 7, class: 'lampglow' }, gi);
+          break;
+        case 'coffee': rect(gi, L(3, 3, it.w - 6, it.d - 6), 'det', { rx: 3 }); break;
         case 'piano': {
           rect(gi, L(4, it.d - 15, it.w - 8, 11), 'keys');
           const keys = 21;
@@ -153,7 +182,8 @@ export class PlanView {
           break;
         }
       }
-      line(gi, L(0, it.d, it.w, 0.01), 'front');
+      if (!round) line(gi, L(0, it.d, it.w, 0.01), 'front');
+      if (f.w < 45 && f.h < 45) continue; // trop petit pour une étiquette lisible
       // étiquette : sur la partie utile (hors clavier, hors encoche)
       const lb = spec?.render === 'piano' ? L(0, 0, it.w, it.d - 16) : f;
       let cx = lb.x + lb.w / 2, cy = lb.y + lb.h / 2;

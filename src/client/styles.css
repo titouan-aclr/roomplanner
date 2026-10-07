@@ -19,6 +19,7 @@
   --c-dresser: #cf8f8f;
   --c-extra: #a99fd0;
   --c-piano: #8792a0;
+  --c-table: #8fb5a8; --c-sofa: #9a8fc4; --c-armchair: #c2a1c9; --c-lamp: #e3c46b; --c-coffee: #b9a27f;
   --label: #16212a;
   --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
@@ -29,7 +30,7 @@
     --paper: #12191b; --sheet: #182124; --ink: #e2e9e6; --muted: #93a3a6; --line: #2f3c40;
     --wall: #8fa2a8; --floor: #1e282b; --accent: #6bb3d4; --accent-ink: #0d1517;
     --ok: #5cc285; --warn: #e0a64a; --bad: #ef7466; --walk: #4e9cc0;
-    --c-bed: #5f7fa9; --c-wardrobe: #a57d52; --c-desk: #649363; --c-dresser: #ad6c6c; --c-extra: #847ab0; --c-piano: #5f6a78;
+    --c-bed: #5f7fa9; --c-wardrobe: #a57d52; --c-desk: #649363; --c-dresser: #ad6c6c; --c-extra: #847ab0; --c-piano: #5f6a78; --c-table: #5f8a7c; --c-sofa: #6f64a0; --c-armchair: #946f9c; --c-lamp: #b8973d; --c-coffee: #8c7652;
     --label: #f2f6f5; color-scheme: dark;
   }
 }
@@ -37,7 +38,7 @@
   --paper: #12191b; --sheet: #182124; --ink: #e2e9e6; --muted: #93a3a6; --line: #2f3c40;
   --wall: #8fa2a8; --floor: #1e282b; --accent: #6bb3d4; --accent-ink: #0d1517;
   --ok: #5cc285; --warn: #e0a64a; --bad: #ef7466; --walk: #4e9cc0;
-  --c-bed: #5f7fa9; --c-wardrobe: #a57d52; --c-desk: #649363; --c-dresser: #ad6c6c; --c-extra: #847ab0; --c-piano: #5f6a78;
+  --c-bed: #5f7fa9; --c-wardrobe: #a57d52; --c-desk: #649363; --c-dresser: #ad6c6c; --c-extra: #847ab0; --c-piano: #5f6a78; --c-table: #5f8a7c; --c-sofa: #6f64a0; --c-armchair: #946f9c; --c-lamp: #b8973d; --c-coffee: #8c7652;
   --label: #f2f6f5; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -365,3 +366,7 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 
 /* éléments fixes de cuisine */
 .s-unit { fill: var(--sheet); stroke: var(--muted); stroke-width: 1; }
+
+/* séjour : chaises autour de la table, halo du lampadaire */
+.item .chairseat { fill: color-mix(in srgb, var(--c) 45%, var(--floor)); stroke: color-mix(in srgb, var(--c) 55%, var(--ink)); stroke-width: .7; }
+.item .lampglow { fill: color-mix(in srgb, var(--c) 40%, #fff); stroke: none; }
