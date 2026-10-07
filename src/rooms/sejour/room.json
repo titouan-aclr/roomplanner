@@ -1,0 +1,120 @@
+{
+  "id": "sejour",
+  "name": "Séjour",
+  "home": "Marcadet",
+  "height": 260,
+  "unit": "cm",
+  "polygon": [[2, 23], [239, 23], [239, 0], [360, 0], [360, 360], [0, 360]],
+  "outline": [[-7, 14], [230, 14], [230, -9], [369, -9], [369, 369], [-9, 369]],
+  "viewBox": [-36, -34, 440, 436],
+  "fixed": [
+    {
+      "id": "chimney",
+      "label": "Cheminée",
+      "labelDef": "la cheminée",
+      "kind": "obstacle",
+      "rect": { "x": 125, "y": 23, "w": 102, "h": 26 },
+      "height": 100,
+      "attachedTo": "top",
+      "notchInfo": "Dessus de cheminée à 100 cm : bonne étagère.",
+      "draw": [
+        { "kind": "rect", "class": "s-chim", "x": 125, "y": 23, "w": 102, "h": 26 },
+        { "kind": "text", "class": "s-note", "x": 176, "y": 39, "text": "cheminée · h 100", "anchor": "middle" }
+      ]
+    },
+    {
+      "id": "kitchen",
+      "label": "Cuisine",
+      "labelDef": "la cuisine",
+      "kind": "obstacle",
+      "rect": { "x": 108, "y": 295, "w": 252, "h": 65 },
+      "height": 220,
+      "draw": [
+        { "kind": "rect", "class": "s-unit", "x": 108, "y": 295, "w": 63, "h": 65 },
+        { "kind": "rect", "class": "s-unit", "x": 171, "y": 295, "w": 63, "h": 65 },
+        { "kind": "rect", "class": "s-unit", "x": 234, "y": 295, "w": 63, "h": 65 },
+        { "kind": "rect", "class": "s-unit", "x": 297, "y": 295, "w": 63, "h": 65 },
+        { "kind": "text", "class": "s-note", "x": 139.5, "y": 325, "text": "frigo", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 139.5, "y": 334, "text": "+ ballon", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 202.5, "y": 325, "text": "plaques", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 202.5, "y": 334, "text": "+ meuble haut", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 265.5, "y": 325, "text": "lave-linge", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 265.5, "y": 334, "text": "+ meuble haut", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 328.5, "y": 325, "text": "évier", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 328.5, "y": 334, "text": "+ micro-ondes", "anchor": "middle" }
+      ]
+    }
+  ],
+  "openings": [
+    {
+      "id": "window",
+      "kind": "window",
+      "label": "Fenêtre",
+      "rect": { "x": 358, "y": 130, "w": 3, "h": 111 },
+      "draw": [
+        { "kind": "gap", "x": 357, "y": 130, "w": 13, "h": 111 },
+        { "kind": "line", "x1": 360, "y1": 130, "x2": 360, "y2": 241 },
+        { "kind": "line", "x1": 365, "y1": 130, "x2": 365, "y2": 241 },
+        { "kind": "path", "class": "s-swing", "d": "M360 185.5 A55.5 55.5 0 0 1 304.5 130 M360 185.5 A55.5 55.5 0 0 0 304.5 241 M360 130 H304.5 M360 241 H304.5" },
+        { "kind": "text", "class": "s-note", "x": 330, "y": 183, "text": "fenêtre 111", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 330, "y": 192, "text": "allège 30 cm", "anchor": "middle" }
+      ]
+    },
+    {
+      "id": "door-bedroom",
+      "kind": "door",
+      "label": "Porte de la chambre",
+      "rect": { "x": 266, "y": -5, "w": 75, "h": 5 },
+      "draw": [
+        { "kind": "gap", "x": 266, "y": -10, "w": 75, "h": 12 },
+        { "kind": "line", "x1": 341, "y1": 0, "x2": 341, "y2": 75 },
+        { "kind": "path", "class": "s-swing", "d": "M266 0 A75 75 0 0 0 341 75" },
+        { "kind": "text", "class": "s-note", "x": 300, "y": 30, "text": "porte 75", "anchor": "middle" },
+        { "kind": "text", "class": "s-note", "x": 300, "y": 39, "text": "vers la chambre", "anchor": "middle" }
+      ]
+    },
+    {
+      "id": "door-bottom",
+      "kind": "door",
+      "label": "Porte du bas",
+      "rect": { "x": 8, "y": 360, "w": 77, "h": 5 },
+      "draw": [
+        { "kind": "gap", "x": 8, "y": 358, "w": 77, "h": 13 },
+        { "kind": "line", "x1": 8, "y1": 360, "x2": 8, "y2": 283 },
+        { "kind": "path", "class": "s-swing", "d": "M85 360 A77 77 0 0 0 8 283" },
+        { "kind": "text", "class": "s-note", "x": 46, "y": 340, "text": "porte 77", "anchor": "middle" }
+      ]
+    }
+  ],
+  "zones": [
+    { "id": "windowSwing", "kind": "keepFree", "label": "Ouverture fenêtre", "rect": { "x": 304, "y": 130, "w": 56, "h": 111 },
+      "message": "{item} empêche d'ouvrir la fenêtre.", "frontWarning": "{what} est dans le débattement de la fenêtre : il faudra la pousser pour ouvrir." },
+    { "id": "doorBedroomSwing", "kind": "keepFree", "label": "Ouverture porte de la chambre", "rect": { "x": 266, "y": 0, "w": 75, "h": 75 },
+      "message": "{item} empêche d'ouvrir la porte de la chambre.", "frontWarning": "{what} est dans le débattement de la porte de la chambre." },
+    { "id": "doorBottomSwing", "kind": "keepFree", "label": "Ouverture porte du bas", "rect": { "x": 8, "y": 283, "w": 77, "h": 77 },
+      "message": "{item} empêche d'ouvrir la porte du bas.", "frontWarning": "{what} est dans le débattement de la porte du bas." },
+    { "id": "kitchenWork", "kind": "keepFree", "label": "Espace de travail de la cuisine", "rect": { "x": 108, "y": 225, "w": 252, "h": 70 },
+      "message": "{item} gêne l'espace de travail devant la cuisine.", "frontWarning": "{what} empiète sur l'espace de travail de la cuisine." },
+    { "id": "entryBedroom", "kind": "entry", "label": "Entrée depuis la chambre", "rect": { "x": 266, "y": 0, "w": 75, "h": 57 },
+      "message": "{item} bloque le passage depuis la chambre.", "frontWarning": "{what} empiète sur le passage depuis la chambre." },
+    { "id": "entryBottom", "kind": "entry", "label": "Entrée par la porte du bas", "rect": { "x": 8, "y": 303, "w": 77, "h": 57 },
+      "message": "{item} bloque le passage par la porte du bas.", "frontWarning": "{what} empiète sur le passage par la porte du bas." }
+  ],
+  "dimensions": [
+    { "axis": "h", "from": 2, "to": 239, "at": -18, "label": "237" },
+    { "axis": "h", "from": 239, "to": 360, "at": -18, "label": "121" },
+    { "axis": "h", "from": 2, "to": 125, "at": 7, "label": "123" },
+    { "axis": "h", "from": 125, "to": 227, "at": 7, "label": "102" },
+    { "axis": "h", "from": 227, "to": 239, "at": 7, "label": "12" },
+    { "axis": "v", "from": 23, "to": 360, "at": -20, "label": "337" },
+    { "axis": "v", "from": 0, "to": 130, "at": 378, "label": "130" },
+    { "axis": "v", "from": 130, "to": 241, "at": 378, "label": "111" },
+    { "axis": "v", "from": 0, "to": 360, "at": 392, "label": "360" },
+    { "axis": "h", "from": 0, "to": 360, "at": 384, "label": "360" },
+    { "axis": "h", "from": 108, "to": 360, "at": 290, "label": "cuisine 252 × 65" }
+  ],
+  "snap": {
+    "x": [0, 2, 108, 125, 227, 239, 266, 341, 360],
+    "y": [0, 23, 49, 225, 295, 360]
+  }
+}

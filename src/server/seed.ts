@@ -22,7 +22,7 @@ export async function seed() {
   if (!admin) return;
   for (const room of Object.values(rooms)) {
     const { n: existing } = (await db.select({ n: count() }).from(schema.layouts).where(eq(schema.layouts.roomId, room.data.id)).get())!;
-    if (existing > 0) continue;
+    if (existing > 0 || !room.proposals.length) continue;
     await db.insert(schema.layouts).values(room.proposals.map((p, i) => {
       const json = JSON.stringify(p.layout);
       return { roomId: room.data.id, ownerId: admin.id, name: `${p.key} · ${p.name}`, items: json, initial: json, notes: JSON.stringify({ pros: p.pros, cons: p.cons }), position: i + 1 };
