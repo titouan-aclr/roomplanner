@@ -369,11 +369,16 @@ export class Checker {
   }
 
   /** Espace devant : sous le minimum c'est bloquant, sous le confort c'est un avertissement. */
-  frontClearances() {
+  /**
+   * `allowedInFront(meuble, autre)` : vrai si `autre` peut se trouver dans l'espace devant `meuble`
+   * (par exemple un lampadaire devant un canapé).
+   */
+  frontClearances(allowedInFront?: (it: PlacedItem, other: PlacedItem) => boolean) {
     for (const it of this.items) {
       const fr = this.front(it);
       if (!fr) continue;
-      const fd = this.geo.freeDepth((d) => this.geo.frontOf(it, d), fr.comfort, this.others(it.id));
+      const blockers = this.items.filter((o) => o.id !== it.id && !allowedInFront?.(it, o)).map((o) => ({ r: this.fp.get(o.id)!, label: o.label }));
+      const fd = this.geo.freeDepth((d) => this.geo.frontOf(it, d), fr.comfort, blockers);
       this.frontDepth[it.id] = fd.depth;
       this.fronts.set(it.id, this.geo.frontOf(it, Math.max(1, Math.min(fd.depth, fr.comfort))));
       if (fd.depth < fr.min) this.err(it.id, `${it.label} : ${fd.depth} cm ${fr.what}, bloqué par ${fd.by} (minimum ${fr.min}).`);
@@ -489,13 +494,13 @@ export class Checker {
 // Recherche
 // =====================================================================
 /** Deux meubles se gênent : emprises qui se chevauchent ou meuble dans l'espace minimum devant l'autre. */
-export function makeClash(geo: RoomGeo, minFront: (it: PlacedItem) => number) {
+export function makeClash(geo: RoomGeo, minFront: (it: PlacedItem) => number, allowedInFront?: (it: PlacedItem, other: PlacedItem) => boolean) {
   return (a: PlacedItem, b: PlacedItem) => {
     const fa = footprint(a), fb = footprint(b);
     if (overlap(fa, fb)) return true;
     const ma = minFront(a), mb = minFront(b);
-    if (ma && overlap(geo.frontOf(a, ma), fb)) return true;
-    if (mb && overlap(geo.frontOf(b, mb), fa)) return true;
+    if (ma && !allowedInFront?.(a, b) && overlap(geo.frontOf(a, ma), fb)) return true;
+    if (mb && !allowedInFront?.(b, a) && overlap(geo.frontOf(b, mb), fa)) return true;
     return false;
   };
 }

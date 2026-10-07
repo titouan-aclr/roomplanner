@@ -5,7 +5,7 @@ import { families, makeClash, type RoomGeo } from '../../shared/core';
 import { footprint, frontRect } from '../../shared/geometry';
 import type { Evaluation, Layout, PlacedItem, SolveOptions, SolveResult } from '../../shared/types';
 import { catalog } from './catalog';
-import { evaluateSejour } from './rules';
+import { allowedInFront, evaluateSejour } from './rules';
 
 type Scored = { layout: Layout; ev: Evaluation };
 const BEAM = 120;
@@ -32,7 +32,7 @@ export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {})
     const m = minFront(c);
     return !m || geo.fitsFixed(geo.frontOf(c, m));
   };
-  const clash = makeClash(geo, minFront);
+  const clash = makeClash(geo, minFront, allowedInFront);
   let evaluated = 0;
   const score = (layout: Layout): Scored | null => {
     evaluated++;
@@ -103,7 +103,20 @@ export function solveSejour(geo: RoomGeo, base: Layout, opts: SolveOptions = {})
   if (visible('lamp')) {
     const lt = tpl('lamp');
     const corners = geo.wallCandidates(lt, [{ w: lt.w, d: lt.d }], { step: 30 }).filter(usable);
-    beam = expand(beam, (l) => { const b = besideSeats(l, lt, lt.w, lt.d); return b.length ? b : corners; }, true);
+    beam = expand(beam, (l) => {
+      const b = besideSeats(l, lt, lt.w, lt.d);
+      // devant une assise, collé, à chaque bout (là où il n'empêche pas de s'asseoir au milieu)
+      for (const s of l.filter((i) => i.type === 'sofa' || i.type === 'armchair')) {
+        const fr = frontRect(s, lt.d), horiz = s.face === 'S' || s.face === 'N';
+        for (const t of [0, 1]) {
+          const x = horiz ? (t ? fr.x + fr.w - lt.w : fr.x) : fr.x;
+          const y = horiz ? fr.y : (t ? fr.y + fr.h - lt.d : fr.y);
+          const p: PlacedItem = { ...lt, face: 'S', x, y };
+          if (usable(p)) b.push(p);
+        }
+      }
+      return b.length ? b : corners;
+    }, true);
   }
   // 3. Fauteuil
   if (visible('armchair')) {

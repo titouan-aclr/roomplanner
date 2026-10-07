@@ -28,11 +28,14 @@ function gap(a: Rect, b: Rect) {
   return Math.hypot(dx, dy);
 }
 
+/** Le lampadaire peut se trouver devant le canapé ou le fauteuil, même collé. */
+export const allowedInFront = (it: PlacedItem, other: PlacedItem) => other.type === 'lamp' && (it.type === 'sofa' || it.type === 'armchair');
+
 export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
   const c = new Checker(geo, catalog, layout);
   c.placement();
   c.overlaps();
-  c.frontClearances();
+  c.frontClearances(allowedInFront);
   c.frontInZones('piano', 'Le banc du piano', { entry: 4, keepFree: 4 });
   c.reachability();
   c.entriesConnected();
@@ -95,10 +98,10 @@ export function evaluateSejour(geo: RoomGeo, layout: Layout): Evaluation {
   // Fauteuil : assez proche du canapé ou de la table basse pour discuter
   if (armchair) {
     c.score += PRESENCE.armchair;
-    const target = coffee ?? sofa;
-    if (target) {
-      const [ax, ay] = center(fp(armchair)), [bx, by] = center(fp(target));
-      const d = Math.hypot(ax - bx, ay - by);
+    const targets = [sofa, coffee].filter(Boolean) as PlacedItem[];
+    if (targets.length) {
+      const [ax, ay] = center(fp(armchair));
+      const d = Math.min(...targets.map((t) => { const [bx, by] = center(fp(t)); return Math.hypot(ax - bx, ay - by); }));
       if (d > 220) { c.warn(armchair.id, `${armchair.label} loin du coin salon (${Math.round(d)} cm) : il sera isolé.`); c.score -= 6; }
       else c.score += 4;
     }
